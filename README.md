@@ -34,6 +34,42 @@ To clean all build artifacts **except** the extremely slow battle animation comp
 make clean_fast
 ```
 
+### Testing
+
+Host-side unit tests live under `tests/`. Each `tests/test_*.c` is a standalone
+executable that links against the vendored [Unity](https://www.throwtheswitch.org/unity)
+test framework in `tests/vendor/unity/`. No GBA toolchain, `baserom.gba`, or
+agbcc is needed — only a host C compiler (`cc`).
+
+Run all tests:
+
+```bash
+make test
+```
+
+You should see `== tests/build/test_dummy ==` followed by Unity's per-test
+report, then `ALL TESTS PASSED`.
+
+#### Adding a test
+
+1. Copy `tests/test_dummy.c` to `tests/test_<thing>.c`.
+2. Replace the body with your assertions. Keep your own `setUp` / `tearDown`
+   as needed; both must be defined even if empty.
+3. `make test` will auto-discover and run it — no central registry to edit.
+
+#### Pure-logic rule
+
+Tested code must be host-portable. Concretely:
+
+- Include only `gba/types.h` (or `<stdint.h>`) from `include/`. **Never**
+  `global.h`, `gba/gba.h`, `hardware.h`, register macros, IWRAM globals,
+  or `extern` engine symbols.
+- Pass engine state in as function parameters or structs. No reaching
+  into globals.
+
+Violating this either fails to compile on the host or silently couples
+tests to engine state and is treated as a bug in the test.
+
 ### Setting up the repository manually
 
 1. You must have a copy of the Fire Emblem: The Sacred Stones ROM named `baserom.gba` in the repository directory.

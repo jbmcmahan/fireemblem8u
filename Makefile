@@ -227,7 +227,7 @@ $(BANIM_OBJECT): $(shell ./scripts/arm_compressing_linker.py -t linker_script_ba
 
 MAKEDEP = mkdir -p $(DEPS_DIR)/$(dir $*) && $(CPP) $(CPPFLAGS) $< -MM -MG -MT $*.o > $(DEPS_DIR)/$*.d
 
-MAKECMDGOALS_NODEP := clean tag
+MAKECMDGOALS_NODEP := clean tag test
 
 ifeq (,$(filter $(MAKECMDGOALS),$(MAKECMDGOALS_NODEP)))
 -include $(addprefix $(DEPS_DIR)/,$(CFILES:.c=.d))
@@ -297,3 +297,28 @@ $(ASM_OBJECTS): %.o: %.s $$(data_dep)
 
 # debug print, to use, call "make print-(your label here)"
 print-% : ; $(info $* is a $(flavor $*) variable set to [$($*)]) @true
+
+#### Host-side tests ####
+
+HOSTCC     ?= cc
+HOSTCFLAGS ?= -std=gnu11 -Wall -Wextra -g -O0
+TEST_DIR      := tests
+TEST_BUILD    := $(TEST_DIR)/build
+UNITY_SRC     := $(TEST_DIR)/vendor/unity/unity.c
+TEST_INCLUDES := -I include -I src -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity
+TEST_SRCS     := $(wildcard $(TEST_DIR)/test_*.c)
+TEST_BINS     := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD)/%,$(TEST_SRCS))
+ENGAGE_SRCS   := $(wildcard src/engage_mechanics/*.c)
+
+$(TEST_BUILD):
+	mkdir -p $(TEST_BUILD)
+
+$(TEST_BUILD)/%: $(TEST_DIR)/%.c $(UNITY_SRC) $(ENGAGE_SRCS) | $(TEST_BUILD)
+	$(HOSTCC) $(HOSTCFLAGS) $(TEST_INCLUDES) $< $(UNITY_SRC) $(ENGAGE_SRCS) -o $@
+
+test: $(TEST_BINS)
+	@fail=0; for t in $(TEST_BINS); do echo "== $$t =="; ./$$t || fail=1; done; \
+	  if [ $$fail -ne 0 ]; then echo "TESTS FAILED"; exit 1; fi; \
+	  echo "ALL TESTS PASSED"
+
+.PHONY: test
