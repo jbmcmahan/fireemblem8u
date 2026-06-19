@@ -31,6 +31,10 @@ struct EmblemDef
     u8 weaponTriangle;
 };
 
+/* No CONST_DATA on this extern — section attr lives on the definition in
+ * engage_data.c (PR #30). Mirroring variables.h's `extern CONST_DATA` would
+ * pull in prelude.h's `__attribute__((section(".data")))` and break the
+ * Mach-O host test build (GCC rejects section attrs on Mach-O externs). */
 extern struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT];
 
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_DATA_H
