@@ -305,7 +305,7 @@ HOSTCFLAGS ?= -std=gnu11 -Wall -Wextra -g -O0
 TEST_DIR      := tests
 TEST_BUILD    := $(TEST_DIR)/build
 UNITY_SRC     := $(TEST_DIR)/vendor/unity/unity.c
-TEST_INCLUDES := -I include -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity
+TEST_INCLUDES := -I include -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity -I src
 TEST_SRCS     := $(wildcard $(TEST_DIR)/test_*.c)
 TEST_BINS     := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD)/%,$(TEST_SRCS))
 ENGAGE_SRCS   := $(wildcard src/engage_mechanics/*.c)
