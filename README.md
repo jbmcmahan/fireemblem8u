@@ -50,6 +50,12 @@ make test
 You should see `== tests/build/test_dummy ==` followed by Unity's per-test
 report, then `ALL TESTS PASSED`.
 
+To run a single test without rebuilding the rest:
+
+```bash
+make tests/build/test_dummy && tests/build/test_dummy
+```
+
 #### Adding a test
 
 1. Copy `tests/test_dummy.c` to `tests/test_<thing>.c`.

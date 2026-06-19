@@ -108,7 +108,7 @@ compare: $(ROM)
 .PHONY: compare
 
 CLEAN_FILES := $(ROM) $(ELF) $(MAP) $(OBJECTS_LST) $(SFILES_COMPILED) graphics/*.h $(CFILES_GENERATED)
-CLEAN_DIRS := $(DEPS_DIR)
+CLEAN_DIRS = $(DEPS_DIR) $(TEST_BUILD)
 CLEAN_BINS := graphics/statscreen/*.bin $(SAMPLE_SUBDIR)/*.bin $(MAP_LAYOUT_SUBDIR)/*.bin $(AUTO_GEN_TARGETS)
 CLEAN_SONGS := $(MID_SUBDIR)/*.s
 
@@ -305,7 +305,7 @@ HOSTCFLAGS ?= -std=gnu11 -Wall -Wextra -g -O0
 TEST_DIR      := tests
 TEST_BUILD    := $(TEST_DIR)/build
 UNITY_SRC     := $(TEST_DIR)/vendor/unity/unity.c
-TEST_INCLUDES := -I include -I src -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity
+TEST_INCLUDES := -I include -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity
 TEST_SRCS     := $(wildcard $(TEST_DIR)/test_*.c)
 TEST_BINS     := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD)/%,$(TEST_SRCS))
 ENGAGE_SRCS   := $(wildcard src/engage_mechanics/*.c)
