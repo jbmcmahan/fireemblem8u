@@ -22,6 +22,18 @@
 // engageWeaponItemId uses 0..11 placeholders; real items.h IDs land
 // in a future data-expansion issue.
 // All other struct EmblemDef fields zero-init per C.
+//
+/**
+ * gEmblemDefs lives at ROM address 0x08FFFF00 (see ldscript.txt line ~1215).
+ * Size: 12 * sizeof(struct EmblemDef) = 12 * 28 = 336 bytes (0x150).
+ *   (sizeof is 28 on GBA — pointer is 4 bytes; on host it's 40.)
+ * Placement: tail-appended after data/data_FFF000.o(.data) at 0x08FFFF00.
+ *   The first 256 bytes of the table overwrite a previously-zero ROM tail;
+ *   the trailing 80 bytes extend the ROM past 0x09000000 (now 0x09000050).
+ *   SHA1 changes accordingly — see checksum.sha1.
+ * String literals (.rodata) live at 0x0858791C, 82 bytes (0x52).
+ * If you grow this table, re-audit the gap and update this comment.
+ */
 CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
 {
     [ 0] = { .name = "Marth",   .engageWeaponItemId = 0  },
