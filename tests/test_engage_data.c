@@ -32,10 +32,6 @@ static void test_bond_growth_stats_array_size_is_seven(void)
     TEST_ASSERT_EQUAL_UINT(7, sizeof(((struct EmblemDef *)0)->bondGrowthStats));
 }
 
-#if 0
-// TODO(#29): unblock when src/engage_mechanics/engage_data.c lands.
-// These dereference gEmblemDefs, which has no definition yet.
-
 // 4. Every entry's name pointer non-NULL.
 static void test_each_emblems_name_non_null(void)
 {
@@ -66,7 +62,6 @@ static void test_emblems_names_match_canonical(void)
     for (unsigned i = 0; i < EMBLEM_DEF_COUNT; ++i)
         TEST_ASSERT_EQUAL_STRING(CANONICAL_NAMES[i], gEmblemDefs[i].name);
 }
-#endif
 
 int main(void)
 {
@@ -76,10 +71,8 @@ int main(void)
     RUN_TEST(test_table_has_twelve_emdefs_size);
     RUN_TEST(test_sync_skills_array_size_is_five);
     RUN_TEST(test_bond_growth_stats_array_size_is_seven);
-#if 0
     RUN_TEST(test_each_emblems_name_non_null);
     RUN_TEST(test_each_emblems_engageweaponid_matches_index);
     RUN_TEST(test_emblems_names_match_canonical);
-#endif
     return UNITY_END();
 }
