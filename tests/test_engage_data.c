@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "engage_mechanics/engage_api.h"
+#include "constants/items.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -63,6 +64,49 @@ static void test_emblems_names_match_canonical(void)
         TEST_ASSERT_EQUAL_STRING(CANONICAL_NAMES[i], gEmblemDefs[i].name);
 }
 
+// 9. Pin the host size so accidental field additions break the build.
+static void test_rdef_size_is_1_byte(void)
+{
+    TEST_ASSERT_EQUAL_UINT(1, sizeof(struct RingItemDef));
+}
+
+// 10. Dimension assertion — pure compile-time on a sized extern.
+static void test_ring_table_has_twelve_entries(void)
+{
+    TEST_ASSERT_EQUAL_UINT(12, sizeof(gRingItemDefs) / sizeof(gRingItemDefs[0]));
+}
+
+// 11. Acceptance-criterion size check from issue #41.
+static void test_ring_table_has_twelve_rdefs_size(void)
+{
+    TEST_ASSERT_EQUAL_UINT(12 * sizeof(struct RingItemDef), sizeof(gRingItemDefs));
+}
+
+// 12. Per-entry emblemId matches its index (canonical Emblem order).
+static void test_each_rings_emblemid_matches_index(void)
+{
+    for (unsigned i = 0; i < 12; ++i)
+        TEST_ASSERT_EQUAL_UINT(i, gRingItemDefs[i].emblemId);
+}
+
+// 13. The 12 new ring item IDs are contiguous and start at 0xCE
+//     (after ITEM_UNK_CD = 0xCD). No collision with existing items.
+static void test_ring_item_ids_are_contiguous(void)
+{
+    TEST_ASSERT_EQUAL_INT(0xCE, ITEM_RING_MARTH);
+    TEST_ASSERT_EQUAL_INT(0xCF, ITEM_RING_CELICA);
+    TEST_ASSERT_EQUAL_INT(0xD0, ITEM_RING_SIGURD);
+    TEST_ASSERT_EQUAL_INT(0xD1, ITEM_RING_LEIF);
+    TEST_ASSERT_EQUAL_INT(0xD2, ITEM_RING_ROY);
+    TEST_ASSERT_EQUAL_INT(0xD3, ITEM_RING_LYN);
+    TEST_ASSERT_EQUAL_INT(0xD4, ITEM_RING_EIRIKA);
+    TEST_ASSERT_EQUAL_INT(0xD5, ITEM_RING_IKE);
+    TEST_ASSERT_EQUAL_INT(0xD6, ITEM_RING_MICAIAH);
+    TEST_ASSERT_EQUAL_INT(0xD7, ITEM_RING_LUCINA);
+    TEST_ASSERT_EQUAL_INT(0xD8, ITEM_RING_CORRIN);
+    TEST_ASSERT_EQUAL_INT(0xD9, ITEM_RING_BYLETH);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -74,5 +118,10 @@ int main(void)
     RUN_TEST(test_each_emblems_name_non_null);
     RUN_TEST(test_each_emblems_engageweaponid_matches_index);
     RUN_TEST(test_emblems_names_match_canonical);
+    RUN_TEST(test_rdef_size_is_1_byte);
+    RUN_TEST(test_ring_table_has_twelve_entries);
+    RUN_TEST(test_ring_table_has_twelve_rdefs_size);
+    RUN_TEST(test_each_rings_emblemid_matches_index);
+    RUN_TEST(test_ring_item_ids_are_contiguous);
     return UNITY_END();
 }

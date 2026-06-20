@@ -95,6 +95,8 @@ enum {
 
     ITYPE_MONSTER    = 11,
     ITYPE_DANCE    = 12,
+
+    ITYPE_RING     = 13, // engage: ring items (one per Emblem in gRingItemDefs[12])
 };
 
 enum {

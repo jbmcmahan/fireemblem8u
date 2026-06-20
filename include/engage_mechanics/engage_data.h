@@ -37,4 +37,18 @@ struct EmblemDef
  * Mach-O host test build (GCC rejects section attrs on Mach-O externs). */
 extern struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT];
 
+// Item kind for Engage rings. Source-of-truth is the ITYPE_* enum in
+// include/bmitem.h; this alias matches the issue #41 spec wording.
+#define ITEM_KIND_RING ITYPE_RING
+
+struct RingItemDef
+{
+    /* ID of the Emblem this ring summons. Index into gEmblemDefs[]. */
+    u8 emblemId;
+};
+
+/* No CONST_DATA on this extern — section attr lives on the definition in
+ * engage_data.c. Same Mach-O host-test rationale as gEmblemDefs (PR #30). */
+extern struct RingItemDef gRingItemDefs[12];
+
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_DATA_H
