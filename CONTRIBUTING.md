@@ -392,6 +392,10 @@ the ROM bytes auditable.
   `include/engage_mechanics/engage_api.h`. Add the new header to the
   umbrella in the same commit that introduces it — never leave a header
   that consumers can't reach through the public API surface.
+- Config-only headers (no matching `.c`, e.g. `engage_config.h`) are a
+  special case: they still must be re-exported by the umbrella, but the
+  `CONST_DATA` and free-space audit rules below don't apply — there is
+  no definition site to annotate.
 
 ## `CONST_DATA` on global data
 
@@ -445,12 +449,17 @@ example on `gEmblemDefs[12]`.
 
 ## Pure-logic rule
 
-Modules that should be host-testable must not `#include` any of:
+Modules that should be host-testable must not `#include` hardware or
+global-state headers:
 
 - `global.h`
 - `hardware.h`
 - `gba/gba.h`
 - Any `REG_*` macro
+
+`gba/types.h` is allowed — it contains pure type definitions
+(`u8`, `u16`, `bool8`, etc.) and no hardware access. `engage_meter.h`
+includes it for exactly that reason.
 
 All state must arrive via function arguments or struct fields. The
 `engage_meter` module is the reference: it takes `u8`/`u16` in, returns
