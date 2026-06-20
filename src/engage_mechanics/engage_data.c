@@ -35,7 +35,8 @@
  *   the trailing 80 bytes extend the ROM past 0x09000000 (now 0x09000050).
  *   SHA1 changes accordingly — see checksum.sha1.
  * String literals (.rodata) live at 0x0858791C, 82 bytes (0x52).
- * If you grow this table, re-audit the gap and update this comment.
+ * If you grow this table (or add another .data object after it), re-audit
+ * both Boundaries and Placement, and update this comment.
  */
 CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
 {
