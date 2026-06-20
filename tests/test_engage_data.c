@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "engage_mechanics/engage_api.h"
+#include "constants/items.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -41,7 +42,11 @@ static void test_each_emblems_name_non_null(void)
 
 // 5. engageWeaponItemId matches the host-side EXPECTED_IDS.
 static const unsigned char EXPECTED_IDS[EMBLEM_DEF_COUNT] =
-    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+{
+    ITEM_EMBLEM_MARTH,   ITEM_EMBLEM_CELICA,  ITEM_EMBLEM_SIGURD,  ITEM_EMBLEM_LEIF,
+    ITEM_EMBLEM_ROY,     ITEM_EMBLEM_LYN,     ITEM_EMBLEM_EIRIKA,  ITEM_EMBLEM_IKE,
+    ITEM_EMBLEM_MICAIAH, ITEM_EMBLEM_LUCINA,  ITEM_EMBLEM_CORRIN,  ITEM_EMBLEM_BYLETH,
+};
 
 static void test_each_emblems_engageweaponid_matches_index(void)
 {
