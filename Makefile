@@ -75,7 +75,10 @@ CFILES       := $(wildcard $(C_SUBDIR)/*.c)
 ifeq (,$(findstring $(CFILES_GENERATED),$(CFILES)))
 CFILES       += $(CFILES_GENERATED)
 endif
-CFILES       += $(wildcard src/engage_mechanics/*.c)
+# All src/<subdir>/*.c join the GBA build automatically. ldscript.txt
+# remains the explicit per-object review gate: a new .c compiles, but
+# its .o only lands in ROM when ldscript.txt gains a matching line.
+CFILES       += $(wildcard src/*/*.c)
 ASM_S_FILES  := $(wildcard $(ASM_SUBDIR)/*.s)
 SRC_S_FILES  := src/rom_header.s src/crt0.s src/m4a_1.s src/libagbsyscall.s
 DATA_S_FILES := $(wildcard $(DATA_SUBDIR)/*.s)
@@ -309,7 +312,7 @@ UNITY_SRC     := $(TEST_DIR)/vendor/unity/unity.c
 TEST_INCLUDES := -I include -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity -I src
 TEST_SRCS     := $(wildcard $(TEST_DIR)/test_*.c)
 TEST_BINS     := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD)/%,$(TEST_SRCS))
-ENGAGE_SRCS   := $(wildcard src/engage_mechanics/*.c)
+ENGAGE_SRCS   := $(wildcard src/*/*.c)
 
 $(TEST_BUILD):
 	mkdir -p $(TEST_BUILD)
