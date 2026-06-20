@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "engage_mechanics/engage_api.h"
+#include "constants/items.h"
 
 void setUp(void) {}
 void tearDown(void) {}

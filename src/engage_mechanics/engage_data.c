@@ -49,3 +49,33 @@ CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
     [10] = { .name = "Corrin",  .engageWeaponItemId = 10 },
     [11] = { .name = "Byleth",  .engageWeaponItemId = 11 },
 };
+
+// gRingItemDefs[12] — one ring item per Emblem, in gEmblemDefs order.
+// Each entry's emblemId matches its index in gEmblemDefs[]. All other
+// RingItemDef fields zero-init per C.
+//
+// Placement: immediately after gEmblemDefs in engage_data.o(.data).
+//   gEmblemDefs lives at 0x08FFFF00, size 336 bytes (12 * 28 on GBA).
+//   gRingItemDefs starts at 0x09000050, size 12 bytes (12 * 1).
+//   ROM file now ends at 0x0900005C (was 0x09000050).
+//   SHA1 changes accordingly — see checksum.sha1.
+// Verification: deferred to issue #39 (dead-bytes audit, still open).
+CONST_DATA struct RingItemDef gRingItemDefs[12] =
+{
+    [ 0] = { .emblemId = 0  },  // Marth
+    [ 1] = { .emblemId = 1  },  // Celica
+    [ 2] = { .emblemId = 2  },  // Sigurd
+    [ 3] = { .emblemId = 3  },  // Leif
+    [ 4] = { .emblemId = 4  },  // Roy
+    [ 5] = { .emblemId = 5  },  // Lyn
+    [ 6] = { .emblemId = 6  },  // Eirika
+    [ 7] = { .emblemId = 7  },  // Ike
+    [ 8] = { .emblemId = 8  },  // Micaiah
+    [ 9] = { .emblemId = 9  },  // Lucina
+    [10] = { .emblemId = 10 },  // Corrin
+    [11] = { .emblemId = 11 },  // Byleth
+};
+
+// Build-time size contract from issue #41 acceptance criteria.
+_Static_assert(sizeof(gRingItemDefs) == 12 * sizeof(struct RingItemDef),
+               "gRingItemDefs must have 12 RingItemDef entries");
