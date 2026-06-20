@@ -375,6 +375,98 @@ Practical rules:
 If you are unsure which bucket your change falls into, default to **SHA1 must match** and ask in the PR.
 
 
+# Engage module conventions
+
+Apply these rules to every new submodule under `include/engage_mechanics/`
+and `src/engage_mechanics/`. They keep the host test build compiling and
+the ROM bytes auditable.
+
+## Layout
+
+- Headers: `include/engage_mechanics/<name>.h`
+- Sources: `src/engage_mechanics/<name>.c`
+- Tests: `tests/test_<name>.c` (auto-discovered by the Makefile via
+  `$(wildcard $(TEST_DIR)/test_*.c)` — drop a file matching the glob and
+  it runs, no registration step).
+- Every submodule header must be re-exported by the umbrella
+  `include/engage_mechanics/engage_api.h`. Add the new header to the
+  umbrella in the same commit that introduces it — never leave a header
+  that consumers can't reach through the public API surface.
+- Config-only headers (no matching `.c`, e.g. `engage_config.h`) are a
+  special case: they still must be re-exported by the umbrella, but the
+  `CONST_DATA` and free-space audit rules below don't apply — there is
+  no definition site to annotate.
+
+## `CONST_DATA` on global data
+
+`CONST_DATA` is defined **locally** in each `.c` file that needs it. It
+is not in `prelude.h`. Reason: the host test build links `.c` files into
+a Mach-O binary on macOS, where `__attribute__((section(".data")))` on
+an *extern* is rejected; it is accepted on a *definition*. The linker
+resolves by symbol name regardless of section, so the attribute only
+needs to live on the definition site.
+
+Put the attribute on the **definition**, not the extern declaration in
+the header. Mirroring `extern CONST_DATA struct Foo gFoo;` from
+`include/variables.h` will pull in `prelude.h`'s `SECTION(".data")` macro
+and break the host build.
+
+Copy-paste this guard into every `.c` file that owns a global data
+table (verbatim from `src/engage_mechanics/engage_data.c:10-18`):
+
+```c
+#if !defined(CONST_DATA)
+#  if defined(__APPLE__)
+#    define CONST_DATA
+#  elif defined(__GNUC__)
+#    define CONST_DATA __attribute__((section(".data")))
+#  else
+#    define CONST_DATA
+#  endif
+#endif
+```
+
+For every new global data table you add, you also need three matching
+anchor lines in `ldscript.txt`, one each under `.text`, `.rodata`, and
+`.data`. See lines 570, 838, and 1215 for the `engage_data.o` triplet.
+
+## Free-space audit comment
+
+Every new ROM-resident global gets a multi-line `/** ... */` comment
+directly above the definition containing exactly:
+
+1. ROM address.
+2. Size in bytes, written as `sizeof(struct ...) * count` (note host
+   vs. GBA pointer-width delta for any struct that contains pointers —
+   `sizeof` on macOS is 8 bytes per pointer, on GBA it is 4).
+3. Exact `ldscript.txt:N` line that anchors it.
+4. An explicit `next-symbol: <name or none>` line so the gap to the
+   next symbol is recorded.
+5. A warning to re-audit the comment if the table grows.
+
+See `src/engage_mechanics/engage_data.c:26-36` for the canonical
+example on `gEmblemDefs[12]`.
+
+## Pure-logic rule
+
+Modules that should be host-testable must not `#include` hardware or
+global-state headers:
+
+- `global.h`
+- `hardware.h`
+- `gba/gba.h`
+- Any `REG_*` macro
+
+`gba/types.h` is allowed — it contains pure type definitions
+(`u8`, `u16`, `bool8`, etc.) and no hardware access. `engage_meter.h`
+includes it for exactly that reason.
+
+All state must arrive via function arguments or struct fields. The
+`engage_meter` module is the reference: it takes `u8`/`u16` in, returns
+`u8` out, and is fully testable on macOS without a GBA toolchain
+(see `tests/test_engage_meter.c`).
+
+
 # Resources Collection
 
 - [GitHub Help](https://help.github.com/en)
