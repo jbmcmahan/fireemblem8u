@@ -470,10 +470,11 @@ not a hand-rolled byte-for-byte mock.
 The reason: `bmunit.h` (the real GBA definition) is sized for 32-bit
 pointers. On a 64-bit host the same struct shifts field offsets because
 `void *` becomes 8 bytes. A mock sized for the GBA layout will silently
-drift from the real struct on Linux CI (`sizeof == 0x60`, `ringEmblemId @ 0x58`)
-and on macOS (`sizeof == 0x70`, `ringEmblemId @ 0x68`). Tests pass
-locally on one platform, fail on another, and the failure mode is
-"field read out of range" rather than a clear mismatch.
+drift from the real struct — the resolver reads one field, the test
+filled a different one, and the failure mode is "field read out of
+range" rather than a clear mismatch. The exact host `sizeof` depends on
+which fields the mirror carries at the time; the principle (mocks will
+drift) does not.
 
 The active module's header re-exports the macOS-host mirror under
 `#if !defined(__APPLE__)` and pulls in the real `bmbattle.h` otherwise.
@@ -489,11 +490,14 @@ default, not the defender. The reference is `src/engage_skill_hook.c`:
 `ApplySyncSkillsToBattleUnit(attacker, &attacker->unit)`. The defender
 branch is a deliberate omission.
 
-The reason: both units flow through the same hook site. Applying the
-effect to both sides double-counts every stat and every skill. Re-derive
-this from first principles only when a future engage-mode trigger
-(issue #12) makes a defender-side apply correct; document the
-reasoning in the hook's leading comment.
+The reason: `BattleGenerate` calls `ComputeBattleUnitStats` twice with
+the actor and target swapped (see `src/bmbattle.c:186-187`), so each
+unit is the "attacker" of exactly one of the two calls. Applying the
+effect to both parameters would double-count the bonus for whichever
+unit is attacker in both calls (currently: both, since the original
+function is symmetric). Re-derive from first principles only when a
+future engage-mode trigger (issue #12) makes a defender-side apply
+correct; document the reasoning in the hook's leading comment.
 
 ### Files outside `src/engage_mechanics/` are not host-compiled
 
