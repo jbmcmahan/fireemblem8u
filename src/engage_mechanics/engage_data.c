@@ -25,6 +25,7 @@
 //
 /*
  * gEmblemDefs lives at ROM address 0x08FFFF00 (see ldscript.txt:1215).
+ * next-symbol: none
  * Size: 12 * sizeof(struct EmblemDef) = 12 * 28 = 336 bytes (0x150).
  *   (sizeof is 28 on GBA — pointer is 4 bytes; on host it's 40.)
  * Boundaries:
