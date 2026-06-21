@@ -4,13 +4,6 @@
 void setUp(void) {}
 void tearDown(void) {}
 
-// File-scope placeholder definitions so the host-test link resolves the
-// `extern` arrays from engage_skills.h. The real data lands in
-// src/engage_mechanics/engage_skills.c (#6.1) — remove these placeholders
-// in that PR to avoid a duplicate-symbol link error.
-struct SkillDef gSyncSkillDefs[12 * SKILL_DEF_COUNT_SYNC] = {0};
-struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE] = {0};
-
 // 1. Pin the host size so accidental field additions break the build.
 static void test_skilldef_size_is_8_bytes(void)
 {
@@ -53,9 +46,7 @@ static void test_engage_table_size(void)
                            sizeof(gEngageSkillDefs));
 }
 
-#if 0
-// TODO(#6.1): data lives in src/engage_mechanics/engage_skills.c; un-#if 0
-// these in that PR and remove the file-scope placeholder definitions above.
+// Data-driven assertions: real tables land in engage_data.c (#6.1).
 static void test_marth_hp5_skill_kind_and_value(void)
 {
     TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_HP_PCT, gSyncSkillDefs[0 * 5 + 0].kind);
@@ -72,7 +63,6 @@ static void test_marth_engage_skill_kind_is_dual_strike(void)
 {
     TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_DUAL_STRIKE, gEngageSkillDefs[0].kind);
 }
-#endif
 
 int main(void)
 {
@@ -81,5 +71,8 @@ int main(void)
     RUN_TEST(test_skill_effect_kinds_distinct);
     RUN_TEST(test_sync_table_size);
     RUN_TEST(test_engage_table_size);
+    RUN_TEST(test_marth_hp5_skill_kind_and_value);
+    RUN_TEST(test_marth_break_skill_at_tier_3);
+    RUN_TEST(test_marth_engage_skill_kind_is_dual_strike);
     return UNITY_END();
 }

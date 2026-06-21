@@ -1,5 +1,7 @@
 #include "engage_mechanics/engage_data.h"
 
+#include "engage_mechanics/engage_skills.h"
+
 // CONST_DATA places gEmblemDefs in the ROM's .data section on the GBA build,
 // matching the ldscript free-space region for engage_data.o. The host test
 // build links engage_data.c into a Mach-O binary on macOS, where bare ".data"
@@ -48,4 +50,72 @@ CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
     [ 9] = { .name = "Lucina",  .engageWeaponItemId = 9  },
     [10] = { .name = "Corrin",  .engageWeaponItemId = 10 },
     [11] = { .name = "Byleth",  .engageWeaponItemId = 11 },
+};
+
+/**
+ * gSyncSkillDefs tail-appends after gEmblemDefs in engage_data.o(.data).
+ * gEmblemDefs ends at 0x09000050 (0x08FFFF00 + 0x150); this table starts there.
+ * Size: 60 * sizeof(struct SkillDef) = 60 * 8 = 480 bytes (0x1E0) -> ends 0x09000230.
+ *   (sizeof(struct SkillDef) is 8 on BOTH host and GBA — no pointer fields,
+ *    just u8/s8/u8/u8 + u8[4] pad.)
+ * Index math: gSyncSkillDefs[emblemId * SKILL_DEF_COUNT_SYNC + slot], slot 0..4.
+ *   Marth/Celica/Ike hand-curated; other 9 Emblems get HP+5 placeholder at tier 1.
+ * Extends the ROM tail further past 0x09000000 (audit-by-inspection; this fork
+ * does not gate on checksum.sha1 — see AGENTS.md/CONTRIBUTING.md).
+ * If you grow this table, re-audit the gap and update this comment.
+ */
+CONST_DATA struct SkillDef gSyncSkillDefs[12 * SKILL_DEF_COUNT_SYNC] =
+{
+    /* Marth — tiers 1/3/5/9/15 */
+    [ 0] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 0, .tier =  1 },
+    [ 1] = { .kind = SKILL_EFFECT_BREAK,      .value =  0, .emblemId = 0, .tier =  3 },
+    [ 2] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  2, .emblemId = 0, .tier =  5 },
+    [ 3] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 0, .tier =  9 },
+    [ 4] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 0, .tier = 15 },
+    /* Celica — emblemId 1, idx 5..9 */
+    [ 5] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 1, .tier =  1 },
+    [ 6] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 1, .tier =  3 },
+    [ 7] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value = 10, .emblemId = 1, .tier =  5 },
+    [ 8] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 1, .tier =  9 },
+    [ 9] = { .kind = SKILL_EFFECT_HP_PCT,     .value = 10, .emblemId = 1, .tier = 15 },
+    /* Sigurd, Leif, Roy, Lyn, Eirika — placeholder HP+5 @ tier 1 */
+    [10] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 2, .tier = 1 },
+    [15] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 3, .tier = 1 },
+    [20] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 4, .tier = 1 },
+    [25] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 5, .tier = 1 },
+    [30] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 6, .tier = 1 },
+    /* Ike — emblemId 7, idx 35..39, Atk-heavy */
+    [35] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 7, .tier =  1 },
+    [36] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  3, .emblemId = 7, .tier =  3 },
+    [37] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value =  5, .emblemId = 7, .tier =  5 },
+    [38] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value = 10, .emblemId = 7, .tier =  9 },
+    [39] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  5, .emblemId = 7, .tier = 15 },
+    /* Micaiah, Lucina, Corrin, Byleth — placeholder HP+5 @ tier 1 */
+    [40] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId =  8, .tier = 1 },
+    [45] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId =  9, .tier = 1 },
+    [50] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 10, .tier = 1 },
+    [55] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 11, .tier = 1 },
+    /* Unlisted slots zero-init (SKILL_EFFECT_NONE) per C — follow-up data expansion. */
+};
+
+/**
+ * gEngageSkillDefs tail-appends after gSyncSkillDefs (starts 0x09000230).
+ * Size: 12 * sizeof(struct SkillDef) = 12 * 8 = 96 bytes (0x60) -> ends 0x09000290.
+ * One engage skill per Emblem in canonical order. Only Marth is populated for now
+ * (DUAL_STRIKE); the other 11 are SKILL_EFFECT_NONE until later data issues.
+ */
+CONST_DATA struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE] =
+{
+    [ 0] = { .kind = SKILL_EFFECT_DUAL_STRIKE, .value = 0, .emblemId =  0, .tier = 0 }, // Marth
+    [ 1] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  1, .tier = 0 }, // Celica
+    [ 2] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  2, .tier = 0 }, // Sigurd
+    [ 3] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  3, .tier = 0 }, // Leif
+    [ 4] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  4, .tier = 0 }, // Roy
+    [ 5] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  5, .tier = 0 }, // Lyn
+    [ 6] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  6, .tier = 0 }, // Eirika
+    [ 7] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  7, .tier = 0 }, // Ike
+    [ 8] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  8, .tier = 0 }, // Micaiah
+    [ 9] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  9, .tier = 0 }, // Lucina
+    [10] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId = 10, .tier = 0 }, // Corrin
+    [11] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId = 11, .tier = 0 }, // Byleth
 };
