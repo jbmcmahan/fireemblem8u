@@ -179,8 +179,16 @@ struct Unit
     /* 45 */ u8 ai_b_pc;
     /* 46 */ u8 ai_counter;
 
-    /* pad */
-    /* 47 */ u8 _u47;
+    /* uEngageSkillUsed (#47): 0 = engage skill not yet used in the
+     * current engage window; non-zero = used. Set by
+     * ApplyEngageSkillToBattleUnit; cleared by Disengage. Single-use
+     * enforcement: the resolver no-ops if this byte is already non-zero.
+     * Initialized to 0 by ClearUnit (CpuFill16 over sizeof(struct Unit)).
+     *
+     * Placement at 0x47 reuses the documented padding byte; adjacent to
+     * ringEngageState (0x3B) was not feasible because 0x3C is already
+     * pMapSpriteHandle. */
+    /* 47 */ u8 uEngageSkillUsed;
 };
 
 enum udef_ai_index {
