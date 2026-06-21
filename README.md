@@ -7,7 +7,7 @@
 This is a disassembly of Fire Emblem: The Sacred Stones (U)[!]
 
 It builds the following ROM:
-* fireemblem8.gba `sha1: c25b145e37456171ada4b0d440bf88a19f4d509f`
+* fireemblem8.gba `sha1: 3e3c5b35b4db28a6e3e04d07f7f0e3172dee5b3a`
 
 ### Quick Start
 
