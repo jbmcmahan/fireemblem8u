@@ -1,5 +1,7 @@
 #include "engage_mechanics/engage_data.h"
 
+#include "constants/items.h"
+
 // CONST_DATA places gEmblemDefs in the ROM's .data section on the GBA build,
 // matching the ldscript free-space region for engage_data.o. The host test
 // build links engage_data.c into a Mach-O binary on macOS, where bare ".data"
@@ -51,29 +53,32 @@ CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
 };
 
 // gRingItemDefs[12] — one ring item per Emblem, in gEmblemDefs order.
-// Each entry's emblemId matches its index in gEmblemDefs[]. All other
-// RingItemDef fields zero-init per C.
+// Each entry's emblemId matches its index in gEmblemDefs[]. The itemId
+// stores the actual ITEM_RING_* id so engage_ring.c can resolve ring
+// lookups by table scan instead of closed-form ITEM_RING_MARTH+i
+// arithmetic (issue #77). The order is owned by this TU and may be
+// reordered without affecting the API.
 //
 // Placement: immediately after gEmblemDefs in engage_data.o(.data).
 //   gEmblemDefs lives at 0x08FFFF00, size 336 bytes (12 * 28 on GBA).
-//   gRingItemDefs starts at 0x09000050, size 12 bytes (12 * 1).
-//   ROM file now ends at 0x0900005C (was 0x09000050).
+//   gRingItemDefs starts at 0x09000050, size 24 bytes (12 * 2 on GBA).
+//   ROM file now ends at 0x09000068 (was 0x0900005C after #41).
 //   SHA1 changes accordingly — see checksum.sha1.
 // Verification: deferred to issue #39 (dead-bytes audit, still open).
 CONST_DATA struct RingItemDef gRingItemDefs[12] =
 {
-    [ 0] = { .emblemId = 0  },  // Marth
-    [ 1] = { .emblemId = 1  },  // Celica
-    [ 2] = { .emblemId = 2  },  // Sigurd
-    [ 3] = { .emblemId = 3  },  // Leif
-    [ 4] = { .emblemId = 4  },  // Roy
-    [ 5] = { .emblemId = 5  },  // Lyn
-    [ 6] = { .emblemId = 6  },  // Eirika
-    [ 7] = { .emblemId = 7  },  // Ike
-    [ 8] = { .emblemId = 8  },  // Micaiah
-    [ 9] = { .emblemId = 9  },  // Lucina
-    [10] = { .emblemId = 10 },  // Corrin
-    [11] = { .emblemId = 11 },  // Byleth
+    [ 0] = { .itemId = ITEM_RING_MARTH,   .emblemId = 0  },  // Marth
+    [ 1] = { .itemId = ITEM_RING_CELICA,  .emblemId = 1  },  // Celica
+    [ 2] = { .itemId = ITEM_RING_SIGURD,  .emblemId = 2  },  // Sigurd
+    [ 3] = { .itemId = ITEM_RING_LEIF,    .emblemId = 3  },  // Leif
+    [ 4] = { .itemId = ITEM_RING_ROY,     .emblemId = 4  },  // Roy
+    [ 5] = { .itemId = ITEM_RING_LYN,     .emblemId = 5  },  // Lyn
+    [ 6] = { .itemId = ITEM_RING_EIRIKA,  .emblemId = 6  },  // Eirika
+    [ 7] = { .itemId = ITEM_RING_IKE,     .emblemId = 7  },  // Ike
+    [ 8] = { .itemId = ITEM_RING_MICAIAH, .emblemId = 8  },  // Micaiah
+    [ 9] = { .itemId = ITEM_RING_LUCINA,  .emblemId = 9  },  // Lucina
+    [10] = { .itemId = ITEM_RING_CORRIN,  .emblemId = 10 },  // Corrin
+    [11] = { .itemId = ITEM_RING_BYLETH,  .emblemId = 11 },  // Byleth
 };
 
 // Build-time size contract from issue #41 acceptance criteria.

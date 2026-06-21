@@ -4,16 +4,14 @@
 
 void EquipRing(struct Unit *unit, int ringItemId)
 {
-    // Validate that ringItemId is a known ring by scanning gRingItemDefs.
-    // The 12 ring item ids are contiguous, in canonical Emblem order
-    // (tests/test_engage_data.c:96-107 pins this contract). The ring
-    // for Emblem i is (ITEM_RING_MARTH + i), so a closed-form match is
-    // equivalent to scanning gRingItemDefs and avoids forcing this TU
-    // to depend on struct RingItemDef's storage order.
+    // Validate that ringItemId is a known ring by scanning gRingItemDefs
+    // for an itemId match. The closed-form ITEM_RING_MARTH+i arithmetic
+    // (issue #77) coupled this API to the table's storage order; the
+    // scan is reorder-safe.
     int defIndex = -1;
     for (int i = 0; i < ENGAGE_RING_ITEM_COUNT; ++i)
     {
-        if (ringItemId == ITEM_RING_MARTH + i)
+        if (gRingItemDefs[i].itemId == ringItemId)
         {
             defIndex = i;
             break;
@@ -62,7 +60,7 @@ int GetEquippedEmblemId(struct Unit *unit)
 
     for (int i = 0; i < ENGAGE_RING_ITEM_COUNT; ++i)
     {
-        if (ringItemId == ITEM_RING_MARTH + i)
+        if (gRingItemDefs[i].itemId == ringItemId)
             return gRingItemDefs[i].emblemId;
     }
     return -1;
@@ -73,7 +71,6 @@ int GetRingItemIdFromEmblemId(int emblemId)
     if (emblemId < 0 || emblemId >= ENGAGE_RING_ITEM_COUNT)
         return ITEM_NONE;
 
-    // Mirror gRingItemDefs layout: entry i maps ITEM_RING_MARTH+i to
-    // emblem id i (engage_data.c:63-77).
-    return ITEM_RING_MARTH + emblemId;
+    // Reorder-safe (issue #77): look up by table, not arithmetic.
+    return gRingItemDefs[emblemId].itemId;
 }
