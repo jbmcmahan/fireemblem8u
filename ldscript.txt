@@ -230,8 +230,8 @@ SECTIONS
         . = ALIGN(4); src/bmsave-xmap.o(ewram_data);
         . = ALIGN(4); src/savemenu.o(ewram_data);
         . = ALIGN(4); src/bmshop.o(ewram_data);
-        . = 0x3EFB8; gLoadUnitBuffer = .;
-        . = 0x3EFB8; end = .;
+        . = 0x3F200; gLoadUnitBuffer = .;
+        . = 0x3F200; end = .;
     }
 
     IWRAM __iwram_start (NOLOAD) :
