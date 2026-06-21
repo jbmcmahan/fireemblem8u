@@ -31,12 +31,17 @@
  *   Previous-symbol: data_FFF000 (per ldscript.txt:1214).
  *   Next-symbol: none — last entry in the .data section.
  * Placement: tail-appended after data/data_FFF000.o(.data) at 0x08FFFF00.
- *   The first 256 bytes of the table overwrite a previously-zero ROM tail;
+ *   The first 256 bytes of the table overwrite a previously-0xFF ROM tail;
  *   the trailing 80 bytes extend the ROM past 0x09000000 (now 0x09000050).
  *   SHA1 changes accordingly — see checksum.sha1.
  * String literals (.rodata) live at 0x0858791C, 82 bytes (0x52).
  * If you grow this table (or add another .data object after it), re-audit
  * both Boundaries and Placement, and update this comment.
+ *
+ * Verification (issue #39): baserom.gba @ 0x08FFFF00..0x09000000 == all 0xFF.
+ *   No symbols in fireemblem8.map cover this range — only gEmblemDefs.
+ *   See ldscript.txt line 1212 (FILL(0xFF) from end of _banim_pal to end of
+ *   .data section). See commit message for the report.
  */
 CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
 {
