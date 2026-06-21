@@ -22,6 +22,9 @@ struct UnitInfoWindowProc {
 
     /* 30 */ struct Text name;
     /* 38 */ struct Text lines[LINES_MAX];
+#ifdef DEBUG
+    /* 48 */ struct Text ringMarker;
+#endif
 
     /* 60 */ u8 x;
     /* 61 */ u8 y;
@@ -73,6 +76,9 @@ struct UnitInfoWindowProc* NewUnitInfoWindow(ProcPtr parent) {
     struct UnitInfoWindowProc* proc = Proc_Start(gProcScr_UnitInfoWindow, parent);
 
     InitTextDb(&proc->name, 6);
+#ifdef DEBUG
+    InitTextDb(&proc->ringMarker, 2); // 2 tiles (16px) — fits "(R)"
+#endif
 
     ResetIconGraphics();
     LoadIconPalettes(4);
@@ -165,6 +171,14 @@ struct UnitInfoWindowProc* UnitInfoWindow_DrawBase(struct UnitInfoWindowProc* pr
     Text_DrawString(&proc->name, GetStringFromIndex(unit->pCharacterData->nameTextId));
 
     PutText(&proc->name, gBG0TilemapBuffer + TILEMAP_INDEX(x+3, y+1));
+
+#ifdef DEBUG
+    if (unit->ringSlot != 0xFF) {
+        ClearText(&proc->ringMarker);
+        Text_DrawStringASCII(&proc->ringMarker, "(R)");
+        PutText(&proc->ringMarker, gBG0TilemapBuffer + TILEMAP_INDEX(x + width - 3, y + 1));
+    }
+#endif
 
     BG_EnableSyncByMask(BG0_SYNC_BIT | BG1_SYNC_BIT);
 
