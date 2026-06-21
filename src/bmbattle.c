@@ -183,8 +183,8 @@ void BattleGenerateBallistaReal(struct Unit* actor, struct Unit* target) {
 }
 
 void BattleGenerate(struct Unit* actor, struct Unit* target) {
-    ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
-    ComputeBattleUnitStats(&gBattleTarget, &gBattleActor);
+    Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    Engage_ComputeBattleUnitStats(&gBattleTarget, &gBattleActor);
 
     ComputeBattleUnitEffectiveStats(&gBattleActor, &gBattleTarget);
     ComputeBattleUnitEffectiveStats(&gBattleTarget, &gBattleActor);
@@ -226,7 +226,7 @@ void BattleGenerateUiStats(struct Unit* unit, s8 itemSlot) {
         SetBattleUnitTerrainBonusesAuto(&gBattleActor);
 
     SetBattleUnitWeapon(&gBattleActor, itemSlot);
-    ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
 
     if (GetItemIndex(gBattleActor.weapon) == ITEM_SWORD_RUNESWORD) {
         gBattleActor.battleAttack -= gBattleActor.unit.pow / 2;
