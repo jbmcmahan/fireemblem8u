@@ -189,6 +189,16 @@ struct Unit
      * ringEngageState (0x3B) was not feasible because 0x3C is already
      * pMapSpriteHandle. */
     /* 47 */ u8 uEngageSkillUsed;
+
+    /* engage: ringEmblemId/ringBondLevel (#49) — which ring is equipped
+     * (and how bonded) for this unit. Read by ApplySyncSkillsToBattleUnit
+     * and ApplyEngageSkillToBattleUnit. ringEmblemId: 0..11 = equipped
+     * Emblem id; 0xFF = no ring. ringBondLevel: 0..15, bond tier
+     * threshold (sync skills with sk.tier > ringBondLevel don't apply).
+     * Initialized to 0xFF/0 by ClearUnit. Reuses trailing padding bytes
+     * 0x48 and 0x49 — sizeof(struct Unit) is unchanged at 0x4C. */
+    /* 48 */ u8 ringEmblemId;
+    /* 49 */ u8 ringBondLevel;
 };
 
 enum udef_ai_index {

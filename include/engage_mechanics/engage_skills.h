@@ -29,4 +29,34 @@ struct SkillDef
 extern struct SkillDef gSyncSkillDefs[12 * SKILL_DEF_COUNT_SYNC];
 extern struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE];
 
+/* Real structs on GBA + Linux host; minimal mirror on macOS where bmunit.h
+ * is not host-linkable (variables.h uses Mach-O-incompatible section attrs).
+ * Mirrors the established pattern in engage_ring.h. */
+#if !defined(__APPLE__)
+#include "bmbattle.h"
+#else
+struct Unit {
+    unsigned char _pad_to_maxHP[0x12];
+    signed char   maxHP;                    /* 0x12 */
+    unsigned char _pad_to_used[0x47 - 0x13];
+    unsigned char uEngageSkillUsed;         /* 0x47 (#70) */
+    unsigned char ringEmblemId;             /* 0x48 (#49) */
+    unsigned char ringBondLevel;            /* 0x49 (#49) */
+};
+struct BattleUnit {
+    struct Unit unit;                       /* 0x00 */
+    unsigned char _pad_to_atk[0x5A - sizeof(struct Unit)];
+    short battleAttack;                     /* 0x5A */
+    unsigned char _pad_to_hit[0x60 - 0x5C];
+    short battleHitRate;                    /* 0x60 */
+    short battleAvoidRate;                  /* 0x62 */
+    unsigned char _pad_to_crit[0x66 - 0x64];
+    short battleCritRate;                   /* 0x66 */
+};
+#endif
+
+void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
+void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
+bool8 HasInheritedSkill(struct Unit *unit, u8 skillId);
+
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_SKILLS_H

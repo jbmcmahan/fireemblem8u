@@ -211,6 +211,12 @@ struct GameSavePackedUnit {       /* Save Data */
      * non-zero = used. Read by ApplyEngageSkillToBattleUnit; cleared by
      * Disengage. */
     /* 24 */ u8 uEngageSkillUsed;
+
+    /* engage: ringEmblemId/ringBondLevel (#49) — mirror of struct Unit
+     * fields (0xFF/0 = no ring). Persisted so a unit that bonds with an
+     * Emblem retains its bond level across save/load. */
+    /* 25 */ u8 ringEmblemId;
+    /* 26 */ u8 ringBondLevel;
 } BITPACKED;
 
 enum packed_unit_state_bits {
@@ -274,6 +280,11 @@ struct SuspendSavePackedUnit {     /* Suspend Data */
      * (mirror of GameSavePackedUnit.uEngageSkillUsed). 0 = engage skill
      * not yet used in the current engage window; non-zero = used. */
     /* 34 */ u8 uEngageSkillUsed;
+
+    /* engage: ringEmblemId/ringBondLevel (#49) — mirror of struct Unit
+     * fields. Persisted across suspend. */
+    /* 35 */ u8 ringEmblemId;
+    /* 36 */ u8 ringBondLevel;
 } BITPACKED;
 
 /* link arena */
