@@ -31,28 +31,83 @@ extern struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE];
 
 /* Real structs on GBA + Linux host; minimal mirror on macOS where bmunit.h
  * is not host-linkable (variables.h uses Mach-O-incompatible section attrs).
- * Mirrors the established pattern in engage_ring.h. */
+ * Mirrors the established pattern in engage_ring.h.
+ *
+ * The macOS mirror below matches the **Linux host** layout of struct Unit and
+ * struct BattleUnit (compiled with 8-byte pointers on x86_64/arm64) so that
+ * host tests behave identically on macOS and Linux. The fields the resolver
+ * touches are:
+ *   - Unit.uEngageSkillUsed
+ *   - Unit.ringEmblemId
+ *   - Unit.ringBondLevel
+ *   - BattleUnit.battleAttack / battleHitRate / battleAvoidRate / battleCritRate
+ *
+ * Host tests use struct Unit / struct BattleUnit directly from this header
+ * (no hand-rolled stubs) so the resolver's view of the struct is exactly the
+ * struct the test sets up. If the real struct layout in bmunit.h changes
+ * (e.g., a new field is added before uEngageSkillUsed), this mirror must
+ * be updated in lockstep or the resolver tests will diverge. */
 #if !defined(__APPLE__)
 #include "bmbattle.h"
 #else
 struct Unit {
-    unsigned char _pad_to_maxHP[0x12];
-    signed char   maxHP;                    /* 0x12 */
-    unsigned char _pad_to_used[0x47 - 0x13];
-    unsigned char uEngageSkillUsed;         /* 0x47 (#70) */
-    unsigned char ringEmblemId;             /* 0x48 (#49) */
-    unsigned char ringBondLevel;            /* 0x49 (#49) */
+    void * pCharacterData;
+    void * pClassData;
+    signed char level;
+    unsigned char exp;
+    unsigned char aiFlags;
+    signed char index;
+    unsigned int state;
+    signed char xPos;
+    signed char yPos;
+    signed char maxHP;
+    signed char curHP;
+    signed char pow;
+    signed char skl;
+    signed char spd;
+    signed char def;
+    signed char res;
+    signed char lck;
+    signed char conBonus;
+    unsigned char rescue;
+    unsigned char ballistaIndex;
+    signed char movBonus;
+    unsigned short items[5];
+    unsigned char ranks[8];
+    unsigned char statusIndex    : 4;
+    unsigned char statusDuration : 4;
+    unsigned char torchDuration  : 4;
+    unsigned char barrierDuration : 4;
+    unsigned char supports[7];
+    signed char supportBits;
+    unsigned char _u3A;
+    unsigned char _u3B;
+    void * pMapSpriteHandle;
+    unsigned short ai_config;
+    unsigned char ai1;
+    unsigned char ai_a_pc;
+    unsigned char ai2;
+    unsigned char ai_b_pc;
+    unsigned char ai_counter;
+    unsigned char uEngageSkillUsed;  /* #70 */
+    unsigned char ringEmblemId;      /* #49 */
+    unsigned char ringBondLevel;     /* #49 */
 };
+
 struct BattleUnit {
-    struct Unit unit;                       /* 0x00 */
-    unsigned char _pad_to_atk[0x5A - sizeof(struct Unit)];
-    short battleAttack;                     /* 0x5A */
-    unsigned char _pad_to_hit[0x60 - 0x5C];
-    short battleHitRate;                    /* 0x60 */
-    short battleAvoidRate;                  /* 0x62 */
-    unsigned char _pad_to_crit[0x66 - 0x64];
-    short battleCritRate;                   /* 0x66 */
-};
+    struct Unit unit;
+    unsigned char _pad_60[0x72 - 0x60];
+    short battleAttack;
+    short battleDefense;
+    short battleSpeed;
+    short battleHitRate;
+    short battleAvoidRate;
+    short battleEffectiveHitRate;
+    short battleCritRate;
+    short battleDodgeRate;
+    short battleEffectiveCritRate;
+    /* 84 */ short battleSilencerRate;
+}; /* sizeof = 0x86 */
 #endif
 
 void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
