@@ -454,6 +454,63 @@ All state must arrive via function arguments or struct fields. The
 `u8` out, and is fully testable on macOS without a GBA toolchain
 (see `tests/test_engage_meter.c`).
 
+## Host-side testing
+
+Three rules apply to every test under `tests/` and every engage submodule
+that wants to be host-testable. They came out of real CI failures on the
+#81/#82 stack — drift on 64-bit hosts and double-application through
+the hook chain.
+
+### Use the real `struct Unit` / `struct BattleUnit` in tests
+
+Host-side tests must use `struct Unit` and `struct BattleUnit` as defined
+by the active module's header (e.g. `include/engage_mechanics/engage_skills.h`),
+not a hand-rolled byte-for-byte mock.
+
+The reason: `bmunit.h` (the real GBA definition) is sized for 32-bit
+pointers. On a 64-bit host the same struct shifts field offsets because
+`void *` becomes 8 bytes. A mock sized for the GBA layout will silently
+drift from the real struct — the resolver reads one field, the test
+filled a different one, and the failure mode is "field read out of
+range" rather than a clear mismatch. The exact host `sizeof` depends on
+which fields the mirror carries at the time; the principle (mocks will
+drift) does not.
+
+The active module's header re-exports the macOS-host mirror under
+`#if !defined(__APPLE__)` and pulls in the real `bmbattle.h` otherwise.
+By construction, the resolver and the test see the same struct. No
+cast, no stub to keep in lockstep.
+
+### Hook chains apply to the attacker only
+
+Engage hooks that wrap an existing function and apply per-unit effects
+(skills, status overlays, etc.) must apply to the **attacker only** by
+default, not the defender. The reference is `src/engage_skill_hook.c`:
+`Engage_ComputeBattleUnitStats` runs the original function, then calls
+`ApplySyncSkillsToBattleUnit(attacker, &attacker->unit)`. The defender
+branch is a deliberate omission.
+
+The reason: `BattleGenerate` calls `ComputeBattleUnitStats` twice with
+the actor and target swapped (see `src/bmbattle.c:186-187`), so each
+unit is the "attacker" of exactly one of the two calls. Applying the
+effect to both parameters would double-count the bonus for whichever
+unit is attacker in both calls (currently: both, since the original
+function is symmetric). Re-derive from first principles only when a
+future engage-mode trigger (issue #12) makes a defender-side apply
+correct; document the reasoning in the hook's leading comment.
+
+### Files outside `src/engage_mechanics/` are not host-compiled
+
+The Makefile's host test glob is `$(wildcard $(TEST_DIR)/test_*.c)`,
+which links every `src/engage_mechanics/*.c` into the host test binary.
+Anything that touches hardware, ROM-state, or globals owned by other
+TUs must therefore live in `src/` (root), not in `src/engage_mechanics/`.
+
+Example: `src/engage_skill_hook.c` lives in `src/` because it
+references `bmbattle.c` globals and must not compile on the host.
+A module that is pure-logic and is intended to be host-tested goes in
+`src/engage_mechanics/` and is auto-linked.
+
 
 # Resources Collection
 
