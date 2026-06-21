@@ -363,18 +363,6 @@ Once you're done, you can delete `asm/cable_car.s`, and remove it from `ld_scrip
 * rule 10: rule 9 was optimized out
 
 
-# ROM hash (`checksum.sha1`)
-
-The committed `fireemblem8.gba` hash in `checksum.sha1` is load-bearing **only when assembly is being rewritten to C**. Adding or relocating C-defined data in unused ROM regions (e.g., the `FILL(0xFF)` tail past the last symbol) is allowed to change the hash; the engine never reads the new bytes until a subsequent PR wires them in.
-
-Practical rules:
-
-- **Rewriting assembly to C** → SHA1 must remain identical. Verify the new ROM matches `baserom.gba` byte-for-byte and resolve any drift before merging.
-- **Pure-data additions** (new `CONST_DATA` tables, new rodata strings, new entries in an existing table that lives in unused space) → expect a SHA1 delta; record the new hash in the PR description and open a follow-up issue to update `checksum.sha1` before any release.
-
-If you are unsure which bucket your change falls into, default to **SHA1 must match** and ask in the PR.
-
-
 # Engage module conventions
 
 Apply these rules to every new submodule under `include/engage_mechanics/`

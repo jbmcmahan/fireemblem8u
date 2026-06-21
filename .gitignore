@@ -968,3 +968,14 @@ include/msg_data.h
 !src/crt0.s
 !src/m4a_1.s
 !src/libagbsyscall.s
+
+# Local-only agent guidance and Paseo config (per-clone, copied to worktrees by Paseo Setup hook)
+AGENTS.md
+**/AGENTS.md
+agents.md
+**/agents.md
+.agents.md
+**/.agents.md
+.agents/
+paseo.json
+**/paseo.json
