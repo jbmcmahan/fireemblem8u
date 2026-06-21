@@ -43,6 +43,8 @@ extern struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT];
 
 struct RingItemDef
 {
+    /* Item ID of this Emblem's ring (one of ITEM_RING_*). */
+    u8 itemId;
     /* ID of the Emblem this ring summons. Index into gEmblemDefs[]. */
     u8 emblemId;
 };

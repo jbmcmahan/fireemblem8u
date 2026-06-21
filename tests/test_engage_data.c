@@ -65,9 +65,10 @@ static void test_emblems_names_match_canonical(void)
 }
 
 // 9. Pin the host size so accidental field additions break the build.
-static void test_rdef_size_is_1_byte(void)
+//    Issue #77: added `itemId` field; sizeof grew from 1 to 2 bytes.
+static void test_rdef_size_is_2_bytes(void)
 {
-    TEST_ASSERT_EQUAL_UINT(1, sizeof(struct RingItemDef));
+    TEST_ASSERT_EQUAL_UINT(2, sizeof(struct RingItemDef));
 }
 
 // 10. Dimension assertion — pure compile-time on a sized extern.
@@ -118,7 +119,7 @@ int main(void)
     RUN_TEST(test_each_emblems_name_non_null);
     RUN_TEST(test_each_emblems_engageweaponid_matches_index);
     RUN_TEST(test_emblems_names_match_canonical);
-    RUN_TEST(test_rdef_size_is_1_byte);
+    RUN_TEST(test_rdef_size_is_2_bytes);
     RUN_TEST(test_ring_table_has_twelve_entries);
     RUN_TEST(test_ring_table_has_twelve_rdefs_size);
     RUN_TEST(test_each_rings_emblemid_matches_index);
