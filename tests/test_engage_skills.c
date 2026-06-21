@@ -35,31 +35,34 @@ static void test_skill_effect_kinds_distinct(void)
 // 3 + 4. Pure compile-time size assertions on the sized externs.
 static void test_sync_table_size(void)
 {
-    TEST_ASSERT_EQUAL_UINT(12 * SKILL_DEF_COUNT_SYNC,
+    TEST_ASSERT_EQUAL_UINT(EMBLEM_DEF_COUNT,
                            sizeof(gSyncSkillDefs) / sizeof(gSyncSkillDefs[0]));
-    TEST_ASSERT_EQUAL_UINT(12 * SKILL_DEF_COUNT_SYNC * sizeof(struct SkillDef),
-                           sizeof(gSyncSkillDefs));
+    TEST_ASSERT_EQUAL_UINT(sizeof(struct EmblemSyncSkills),
+                           sizeof(gSyncSkillDefs[0]));
+    TEST_ASSERT_EQUAL_UINT(1 + SKILL_DEF_COUNT_SYNC_MAX * sizeof(struct SkillDef),
+                           sizeof(struct EmblemSyncSkills));
 }
 
 static void test_engage_table_size(void)
 {
-    TEST_ASSERT_EQUAL_UINT(12 * SKILL_DEF_COUNT_ENGAGE,
+    TEST_ASSERT_EQUAL_UINT(EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE,
                            sizeof(gEngageSkillDefs) / sizeof(gEngageSkillDefs[0]));
-    TEST_ASSERT_EQUAL_UINT(12 * SKILL_DEF_COUNT_ENGAGE * sizeof(struct SkillDef),
+    TEST_ASSERT_EQUAL_UINT(EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE * sizeof(struct SkillDef),
                            sizeof(gEngageSkillDefs));
 }
 
 // Data-driven assertions: real tables land in engage_data.c (#6.1).
 static void test_marth_hp5_skill_kind_and_value(void)
 {
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_HP_PCT, gSyncSkillDefs[0 * 5 + 0].kind);
-    TEST_ASSERT_EQUAL_INT(5, gSyncSkillDefs[0 * 5 + 0].value);
+    TEST_ASSERT_EQUAL_UINT(6, gSyncSkillDefs[0].count);
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_HP_PCT, gSyncSkillDefs[0].skills[0].kind);
+    TEST_ASSERT_EQUAL_INT(5, gSyncSkillDefs[0].skills[0].value);
 }
 
 static void test_marth_break_skill_at_tier_3(void)
 {
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_BREAK, gSyncSkillDefs[0 * 5 + 1].kind);
-    TEST_ASSERT_EQUAL_UINT(3, gSyncSkillDefs[0 * 5 + 1].tier);
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_BREAK, gSyncSkillDefs[0].skills[1].kind);
+    TEST_ASSERT_EQUAL_UINT(3, gSyncSkillDefs[0].skills[1].tier);
 }
 
 static void test_marth_engage_skill_kind_is_dual_strike(void)

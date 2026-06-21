@@ -8,8 +8,9 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
     if (emblemId == NO_RING) return;
     {
         u8 bondLevel = unit->ringBondLevel;
-        for (u8 slot = 0; slot < SKILL_DEF_COUNT_SYNC; ++slot) {
-            struct SkillDef sk = gSyncSkillDefs[emblemId * SKILL_DEF_COUNT_SYNC + slot];
+        struct EmblemSyncSkills const * es = &gSyncSkillDefs[emblemId];
+        for (u8 slot = 0; slot < es->count; ++slot) {
+            struct SkillDef sk = es->skills[slot];
             if (sk.kind == SKILL_EFFECT_NONE) continue;
             if (sk.tier > bondLevel) continue;
             switch (sk.kind) {

@@ -2,8 +2,13 @@
 #define GUARD_ENGAGE_MECHANICS_ENGAGE_SKILLS_H
 
 #include "gba/types.h"
+#include "engage_mechanics/engage_data.h"
 
-enum { SKILL_DEF_COUNT_SYNC = 5, SKILL_DEF_COUNT_ENGAGE = 1 };
+/* Max sync skill slots any single emblem can hold. Drives struct
+ * EmblemSyncSkills.skills[] size. Marth has 6 in real data; the rest have 5.
+ * Bumping this grows every emblem's reserved storage even if unused slots
+ * stay zero-init, so pick the highest known count plus a little headroom. */
+enum { SKILL_DEF_COUNT_SYNC_MAX = 6, SKILL_DEF_COUNT_ENGAGE = 1 };
 
 enum SkillEffectKind
 {
@@ -26,8 +31,18 @@ struct SkillDef
     u8  _pad[4];    // reserved for future fields; pin size
 };
 
-extern struct SkillDef gSyncSkillDefs[12 * SKILL_DEF_COUNT_SYNC];
-extern struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE];
+/* One block per emblem: .count is the live skill count, .skills[] is the
+ * fixed-size storage. Lets each emblem carry a different number of sync
+ * skills (Marth = 6, others = 5) without per-lookup index math or sentinel
+ * walks. Unused slots in .skills[] stay zero-init per C99. */
+struct EmblemSyncSkills
+{
+    u8 count;
+    struct SkillDef skills[SKILL_DEF_COUNT_SYNC_MAX];
+};
+
+extern struct EmblemSyncSkills gSyncSkillDefs[EMBLEM_DEF_COUNT];
+extern struct SkillDef gEngageSkillDefs[EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE];
 
 /* Real structs on GBA + Linux host; minimal mirror on macOS where bmunit.h
  * is not host-linkable (variables.h uses Mach-O-incompatible section attrs).

@@ -55,56 +55,135 @@ CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
 /**
  * gSyncSkillDefs tail-appends after gEmblemDefs in engage_data.o(.data).
  * gEmblemDefs ends at 0x09000050 (0x08FFFF00 + 0x150); this table starts there.
- * Size: 60 * sizeof(struct SkillDef) = 60 * 8 = 480 bytes (0x1E0) -> ends 0x09000230.
- *   (sizeof(struct SkillDef) is 8 on BOTH host and GBA — no pointer fields,
- *    just u8/s8/u8/u8 + u8[4] pad.)
- * Index math: gSyncSkillDefs[emblemId * SKILL_DEF_COUNT_SYNC + slot], slot 0..4.
- *   Marth/Celica/Ike hand-curated; other 9 Emblems get HP+5 placeholder at tier 1.
+ * Layout: per-emblem { u8 count; struct SkillDef skills[MAX]; } block.
+ *   sizeof(struct EmblemSyncSkills) = 1 + MAX*8 = 1 + 6*8 = 49 bytes on BOTH
+ *   host and GBA (every field is u8/s8 — alignment is 1).
+ *   Total = 12 * 49 = 588 bytes (0x24C) -> ends 0x0900029C.
+ * Per-emblem slot count varies in real data (Marth = 6, others = 5); .count
+ * tracks the live size and unused slots in .skills[] zero-init per C99.
+ * Marth/Celica/Ike hand-curated; other 9 Emblems get HP+5 placeholder at tier 1.
  * Extends the ROM tail further past 0x09000000 (audit-by-inspection; this fork
  * does not gate on checksum.sha1 — see AGENTS.md/CONTRIBUTING.md).
  * If you grow this table, re-audit the gap and update this comment.
  */
-CONST_DATA struct SkillDef gSyncSkillDefs[12 * SKILL_DEF_COUNT_SYNC] =
+CONST_DATA struct EmblemSyncSkills gSyncSkillDefs[EMBLEM_DEF_COUNT] =
 {
-    /* Marth — tiers 1/3/5/9/15 */
-    [ 0] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 0, .tier =  1 },
-    [ 1] = { .kind = SKILL_EFFECT_BREAK,      .value =  0, .emblemId = 0, .tier =  3 },
-    [ 2] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  2, .emblemId = 0, .tier =  5 },
-    [ 3] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 0, .tier =  9 },
-    [ 4] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 0, .tier = 15 },
-    /* Celica — emblemId 1, idx 5..9 */
-    [ 5] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 1, .tier =  1 },
-    [ 6] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 1, .tier =  3 },
-    [ 7] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value = 10, .emblemId = 1, .tier =  5 },
-    [ 8] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 1, .tier =  9 },
-    [ 9] = { .kind = SKILL_EFFECT_HP_PCT,     .value = 10, .emblemId = 1, .tier = 15 },
-    /* Sigurd, Leif, Roy, Lyn, Eirika — placeholder HP+5 @ tier 1 */
-    [10] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 2, .tier = 1 },
-    [15] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 3, .tier = 1 },
-    [20] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 4, .tier = 1 },
-    [25] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 5, .tier = 1 },
-    [30] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 6, .tier = 1 },
-    /* Ike — emblemId 7, idx 35..39, Atk-heavy */
-    [35] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 7, .tier =  1 },
-    [36] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  3, .emblemId = 7, .tier =  3 },
-    [37] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value =  5, .emblemId = 7, .tier =  5 },
-    [38] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value = 10, .emblemId = 7, .tier =  9 },
-    [39] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  5, .emblemId = 7, .tier = 15 },
-    /* Micaiah, Lucina, Corrin, Byleth — placeholder HP+5 @ tier 1 */
-    [40] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId =  8, .tier = 1 },
-    [45] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId =  9, .tier = 1 },
-    [50] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 10, .tier = 1 },
-    [55] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 11, .tier = 1 },
-    /* Unlisted slots zero-init (SKILL_EFFECT_NONE) per C — follow-up data expansion. */
+    /* Marth — 6 sync skills (tiers 1/3/5/9/15 + 6th slot TBD) */
+    [ 0] = {
+        .count = 6,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 0, .tier =  1 },
+            [1] = { .kind = SKILL_EFFECT_BREAK,      .value =  0, .emblemId = 0, .tier =  3 },
+            [2] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  2, .emblemId = 0, .tier =  5 },
+            [3] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 0, .tier =  9 },
+            [4] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 0, .tier = 15 },
+            /* [5] = Marth's 6th sync skill — TBD (zero-init placeholder) */
+        },
+    },
+    /* Celica — 5 sync skills */
+    [ 1] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 1, .tier =  1 },
+            [1] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value =  5, .emblemId = 1, .tier =  3 },
+            [2] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value = 10, .emblemId = 1, .tier =  5 },
+            [3] = { .kind = SKILL_EFFECT_BATTLE_AVO, .value = 10, .emblemId = 1, .tier =  9 },
+            [4] = { .kind = SKILL_EFFECT_HP_PCT,     .value = 10, .emblemId = 1, .tier = 15 },
+        },
+    },
+    /* Sigurd — 5 sync skills, placeholder HP+5 @ tier 1 (remaining TBD) */
+    [ 2] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 2, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Leif — 5 sync skills, placeholder */
+    [ 3] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 3, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Roy — 5 sync skills, placeholder */
+    [ 4] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 4, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Lyn — 5 sync skills, placeholder */
+    [ 5] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 5, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Eirika — 5 sync skills, placeholder */
+    [ 6] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 6, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Ike — 5 sync skills, Atk-heavy */
+    [ 7] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT,     .value =  5, .emblemId = 7, .tier =  1 },
+            [1] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  3, .emblemId = 7, .tier =  3 },
+            [2] = { .kind = SKILL_EFFECT_BATTLE_CRIT,.value =  5, .emblemId = 7, .tier =  5 },
+            [3] = { .kind = SKILL_EFFECT_BATTLE_HIT, .value = 10, .emblemId = 7, .tier =  9 },
+            [4] = { .kind = SKILL_EFFECT_BATTLE_ATK, .value =  5, .emblemId = 7, .tier = 15 },
+        },
+    },
+    /* Micaiah — 5 sync skills, placeholder */
+    [ 8] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 8, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Lucina — 5 sync skills, placeholder */
+    [ 9] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 9, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Corrin — 5 sync skills, placeholder */
+    [10] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 10, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
+    /* Byleth — 5 sync skills, placeholder */
+    [11] = {
+        .count = 5,
+        .skills = {
+            [0] = { .kind = SKILL_EFFECT_HP_PCT, .value = 5, .emblemId = 11, .tier = 1 },
+            /* [1..4] TBD */
+        },
+    },
 };
 
 /**
- * gEngageSkillDefs tail-appends after gSyncSkillDefs (starts 0x09000230).
- * Size: 12 * sizeof(struct SkillDef) = 12 * 8 = 96 bytes (0x60) -> ends 0x09000290.
+ * gEngageSkillDefs tail-appends after gSyncSkillDefs (starts 0x0900029C).
+ * Size: EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE * sizeof(struct SkillDef)
+ *   = 12 * 1 * 8 = 96 bytes (0x60) -> ends 0x090002FC.
  * One engage skill per Emblem in canonical order. Only Marth is populated for now
  * (DUAL_STRIKE); the other 11 are SKILL_EFFECT_NONE until later data issues.
  */
-CONST_DATA struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE] =
+CONST_DATA struct SkillDef gEngageSkillDefs[EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE] =
 {
     [ 0] = { .kind = SKILL_EFFECT_DUAL_STRIKE, .value = 0, .emblemId =  0, .tier = 0 }, // Marth
     [ 1] = { .kind = SKILL_EFFECT_NONE,        .value = 0, .emblemId =  1, .tier = 0 }, // Celica
