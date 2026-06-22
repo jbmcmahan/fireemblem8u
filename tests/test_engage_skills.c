@@ -49,9 +49,9 @@ static void test_skill_def_table_size(void)
 }
 
 // 4. Sync unlock count is correct (count extern — array is extern without size).
-static void test_sync_unlock_count_is_15(void)
+static void test_sync_unlock_count_is_16(void)
 {
-    TEST_ASSERT_EQUAL_UINT(15, gSyncSkillUnlockCount);
+    TEST_ASSERT_EQUAL_UINT(16, gSyncSkillUnlockCount);
 }
 
 // 5. Engage unlock table has EMBLEM_DEF_COUNT entries (count extern).
@@ -60,28 +60,85 @@ static void test_engage_unlock_count_is_12(void)
     TEST_ASSERT_EQUAL_UINT(EMBLEM_DEF_COUNT, gEngageSkillUnlockCount);
 }
 
-// Data-driven assertions: real tables land in engage_data.c (#85-A).
-// Marth's tier-1 sync skill unlock (HP_PCT +5) is at gSyncSkillUnlocks[0];
-// the .skillId field indexes into gSkillDefs[].
+// Data-driven assertions: Marth's bond-level data (#85-C).
+// gSyncSkillUnlocks[0..5] are Marth's 6 sync skills at bond levels 1/3/7/12/16/18.
 static void test_marth_t1_skill_kind_and_value(void)
 {
     TEST_ASSERT_EQUAL_UINT(0, gSyncSkillUnlocks[0].emblemId);
     TEST_ASSERT_EQUAL_UINT(1, gSyncSkillUnlocks[0].bondLevel);
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_HP_PCT,
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_PERCEPTIVE,
                            gSkillDefs[gSyncSkillUnlocks[0].skillId].kind);
-    TEST_ASSERT_EQUAL_INT(5,
-                          gSkillDefs[gSyncSkillUnlocks[0].skillId].value);
 }
 
-// Marth's tier-3 sync skill unlock resolves to a no-op slot in the
-// registry (skillId = 6 was the BREAK placeholder; in #85-A's slim
-// registry, that slot points at SKILL_EFFECT_NONE).
-static void test_marth_t3_skill_is_none(void)
+// Marth's tier-3 sync skill: Break Defenses.
+static void test_marth_t3_skill_is_break_defenses(void)
 {
     TEST_ASSERT_EQUAL_UINT(0, gSyncSkillUnlocks[1].emblemId);
     TEST_ASSERT_EQUAL_UINT(3, gSyncSkillUnlocks[1].bondLevel);
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_NONE,
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_BREAK_DEFENSES,
                            gSkillDefs[gSyncSkillUnlocks[1].skillId].kind);
+}
+
+// Marth's 6 sync skills span the right bond levels.
+static void test_marth_six_sync_skills(void)
+{
+    TEST_ASSERT_EQUAL_UINT(16, gSyncSkillUnlockCount); // 6 Marth + 5 Celica + 5 Ike
+    // Last Marth entry is at Lv 18.
+    TEST_ASSERT_EQUAL_UINT(18, gSyncSkillUnlocks[5].bondLevel);
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_UNYIELDING_PLUS_PLUS,
+                           gSkillDefs[gSyncSkillUnlocks[5].skillId].kind);
+}
+
+// Marth's 6 inheritable skills at bond levels 1/2/4/7/9/12.
+static void test_marth_six_inherit_skills(void)
+{
+    TEST_ASSERT_EQUAL_UINT(6, gInheritSkillUnlockCount);
+    TEST_ASSERT_EQUAL_UINT(0, gInheritSkillUnlocks[0].emblemId);
+    TEST_ASSERT_EQUAL_UINT(1, gInheritSkillUnlocks[0].bondLevel);
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_PERCEPTIVE,
+                           gSkillDefs[gInheritSkillUnlocks[0].skillId].kind);
+    TEST_ASSERT_EQUAL_UINT(12, gInheritSkillUnlocks[5].bondLevel);
+}
+
+// Marth's Rapier weapon unlock at bond Lv 1 (itemId 0 placeholder).
+static void test_marth_rapier_weapon_unlock(void)
+{
+    TEST_ASSERT_EQUAL_UINT(1, gWeaponUnlockCount);
+    TEST_ASSERT_EQUAL_UINT(0, gWeaponUnlocks[0].emblemId);
+    TEST_ASSERT_EQUAL_UINT(1, gWeaponUnlocks[0].bondLevel);
+    TEST_ASSERT_EQUAL_UINT(0, gWeaponUnlocks[0].itemId); // placeholder
+}
+
+// Marth's class change at bond Lv 8.
+static void test_marth_class_change_at_lv8(void)
+{
+    TEST_ASSERT_EQUAL_UINT(1, gClassChangeUnlockCount);
+    TEST_ASSERT_EQUAL_UINT(0, gClassChangeUnlocks[0].emblemId);
+    TEST_ASSERT_EQUAL_UINT(8, gClassChangeUnlocks[0].bondLevel);
+}
+
+// Marth's cumulative bonuses: Lv 1 has +1 Str/Spd; Lv 18 has +3/+5/+5/+3/+2/+1.
+static void test_marth_lv1_bonus(void)
+{
+    TEST_ASSERT_EQUAL_UINT(0, gSyncedBonuses[0][0].hp);
+    TEST_ASSERT_EQUAL_UINT(1, gSyncedBonuses[0][0].str);
+    TEST_ASSERT_EQUAL_UINT(1, gSyncedBonuses[0][0].spd);
+}
+
+static void test_marth_lv18_bonus(void)
+{
+    TEST_ASSERT_EQUAL_UINT(3, gSyncedBonuses[0][17].hp);
+    TEST_ASSERT_EQUAL_UINT(5, gSyncedBonuses[0][17].str);
+    TEST_ASSERT_EQUAL_UINT(5, gSyncedBonuses[0][17].skl);
+    TEST_ASSERT_EQUAL_UINT(3, gSyncedBonuses[0][17].spd);
+    TEST_ASSERT_EQUAL_UINT(2, gSyncedBonuses[0][17].def);
+}
+
+// Mag nibble stays 0 throughout Marth's rows (struct Unit.mag doesn't exist yet).
+static void test_marth_mag_nibble_unused(void)
+{
+    for (u8 i = 0; i < 20; ++i)
+        TEST_ASSERT_EQUAL_UINT(0, gSyncedBonuses[0][i].mag);
 }
 
 // Marth's engage skill is DUAL_STRIKE (via gEngageSkillUnlocks + gSkillDefs).
@@ -122,6 +179,11 @@ static void test_resolver_bond0_noop(void)
     TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
 }
 
+// Marth's wiki skills at Lv 15 (Perceptive, Break Defenses, Unyielding,
+// Unyielding+, Perceptive+, Unyielding++) have no resolver wiring yet —
+// they're stub-cased in ApplySyncSkillsToBattleUnit. The test verifies the
+// resolver runs without crashing and produces no battle-stat deltas for
+// Marth at Lv 15 under the current wiki data.
 static void test_resolver_bond15_marth_cumulative(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
@@ -129,11 +191,10 @@ static void test_resolver_bond15_marth_cumulative(void)
     u.ringBondLevel = 15;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
-    // Marth t1: HP_PCT (no-op, no battleMaxHp); t3: BREAK (no-op);
-    // t5: +2 ATK; t9: +5 HIT; t15: +10 AVO.
-    TEST_ASSERT_EQUAL_INT(2, bu.battleAttack);
-    TEST_ASSERT_EQUAL_INT(5, bu.battleHitRate);
-    TEST_ASSERT_EQUAL_INT(10, bu.battleAvoidRate);
+    // No BATTLE_* skill wiring applies to Marth's wiki skills today.
+    TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
     TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
 }
 
@@ -190,10 +251,17 @@ int main(void)
     RUN_TEST(test_skilldef_size_is_2_bytes);
     RUN_TEST(test_skill_effect_kinds_distinct);
     RUN_TEST(test_skill_def_table_size);
-    RUN_TEST(test_sync_unlock_count_is_15);
+    RUN_TEST(test_sync_unlock_count_is_16);
     RUN_TEST(test_engage_unlock_count_is_12);
     RUN_TEST(test_marth_t1_skill_kind_and_value);
-    RUN_TEST(test_marth_t3_skill_is_none);
+    RUN_TEST(test_marth_t3_skill_is_break_defenses);
+    RUN_TEST(test_marth_six_sync_skills);
+    RUN_TEST(test_marth_six_inherit_skills);
+    RUN_TEST(test_marth_rapier_weapon_unlock);
+    RUN_TEST(test_marth_class_change_at_lv8);
+    RUN_TEST(test_marth_lv1_bonus);
+    RUN_TEST(test_marth_lv18_bonus);
+    RUN_TEST(test_marth_mag_nibble_unused);
     RUN_TEST(test_marth_engage_skill_is_dual_strike);
     RUN_TEST(test_resolver_no_ring_noop);
     RUN_TEST(test_resolver_bond0_noop);

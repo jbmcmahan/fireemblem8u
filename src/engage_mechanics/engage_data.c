@@ -85,9 +85,13 @@ CONST_DATA struct SkillDef gSkillDefs[SKILL_DEF_COUNT] =
     [11] = { .kind = SKILL_EFFECT_UNYIELDING,      .value =  0 },
     [12] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS, .value =  0 },
     [13] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS_PLUS, .value = 0 },
-    [14] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  0 },
-    [15] = { .kind = SKILL_EFFECT_AVOID_BONUS,     .value =  0 },
-    /* indices 16..63 zero-init per C99 */
+    [14] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  1 }, // tier 1
+    [15] = { .kind = SKILL_EFFECT_AVOID_BONUS,     .value = 10 },
+    [16] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  2 }, // tier 2
+    [17] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  3 }, // tier 3
+    [18] = { .kind = SKILL_EFFECT_AVOID_BONUS,     .value = 15 },
+    [19] = { .kind = SKILL_EFFECT_AVOID_BONUS,     .value = 20 },
+    /* indices 20..63 zero-init per C99 */
 };
 
 /**
@@ -103,12 +107,13 @@ CONST_DATA struct SkillDef gSkillDefs[SKILL_DEF_COUNT] =
  */
 CONST_DATA struct SkillUnlock gSyncSkillUnlocks[] =
 {
-    /* Marth — 5 sync skills (tiers 1/3/5/9/15), migrated from #78 */
-    { .emblemId =  0, .bondLevel =  1, .skillId = 1 }, // HP_PCT +5
-    { .emblemId =  0, .bondLevel =  3, .skillId = 6 }, // BREAK (placeholder)
-    { .emblemId =  0, .bondLevel =  5, .skillId = 2 }, // BATTLE_ATK +2
-    { .emblemId =  0, .bondLevel =  9, .skillId = 3 }, // BATTLE_HIT +5
-    { .emblemId =  0, .bondLevel = 15, .skillId = 4 }, // BATTLE_AVO +10
+    /* Marth — 6 sync skills at bond levels 1, 3, 7, 12, 16, 18 (per #86 wiki table) */
+    { .emblemId =  0, .bondLevel =  1, .skillId =  8 }, // Perceptive
+    { .emblemId =  0, .bondLevel =  3, .skillId = 10 }, // Break Defenses
+    { .emblemId =  0, .bondLevel =  7, .skillId = 11 }, // Unyielding
+    { .emblemId =  0, .bondLevel = 12, .skillId = 12 }, // Unyielding+
+    { .emblemId =  0, .bondLevel = 16, .skillId =  9 }, // Perceptive+
+    { .emblemId =  0, .bondLevel = 18, .skillId = 13 }, // Unyielding++
     /* Celica — 5 sync skills */
     { .emblemId =  1, .bondLevel =  1, .skillId = 1 }, // HP_PCT +5
     { .emblemId =  1, .bondLevel =  3, .skillId = 3 }, // BATTLE_HIT +5
@@ -125,15 +130,24 @@ CONST_DATA struct SkillUnlock gSyncSkillUnlocks[] =
 const u8 gSyncSkillUnlockCount = sizeof(gSyncSkillUnlocks) / sizeof(gSyncSkillUnlocks[0]);
 
 /**
- * gInheritSkillUnlocks[] — initially empty.
- * Tail-appends after gSyncSkillUnlocks (starts 0x09000100).
- * Size: gInheritSkillUnlockCount * sizeof(struct SkillUnlock) = 0 bytes.
- *   -> ends 0x09000100 (no data emitted; count extern still defined).
- * Marth's 6 inheritable skills (Perceptive, etc.) land in #85-C.
+ * gInheritSkillUnlocks[] tail-appends after gSyncSkillUnlocks (starts 0x09000118).
+ * Size: 6 * sizeof(struct SkillUnlock) = 6 * 3 = 18 bytes (0x12)
+ *   -> ends 0x0900012A.
+ * Marth's 6 inheritable skills at bond levels 1, 2, 4, 7, 9, 12. The other
+ * 11 emblems get no inheritable rows in #85-C; their unlock tables stay empty.
  * If you grow this table, re-audit the gap and update this comment.
  */
-CONST_DATA struct SkillUnlock gInheritSkillUnlocks[1] = { 0 }; /* placeholder so the array has a definition */
-const u8 gInheritSkillUnlockCount = 0;
+CONST_DATA struct SkillUnlock gInheritSkillUnlocks[] =
+{
+    /* Marth — 6 inheritable skills */
+    { .emblemId =  0, .bondLevel =  1, .skillId =  8 }, // Perceptive (inheritable)
+    { .emblemId =  0, .bondLevel =  2, .skillId = 15 }, // Avoid +10
+    { .emblemId =  0, .bondLevel =  4, .skillId = 14 }, // Sword Agility 1
+    { .emblemId =  0, .bondLevel =  7, .skillId = 11 }, // Unyielding (inheritable)
+    { .emblemId =  0, .bondLevel =  9, .skillId = 16 }, // Sword Agility 2
+    { .emblemId =  0, .bondLevel = 12, .skillId = 17 }, // Sword Agility 3
+};
+const u8 gInheritSkillUnlockCount = sizeof(gInheritSkillUnlocks) / sizeof(gInheritSkillUnlocks[0]);
 
 /**
  * gEngageSkillUnlocks[] tail-appends after gInheritSkillUnlocks.
@@ -162,33 +176,73 @@ CONST_DATA struct SkillUnlock gEngageSkillUnlocks[EMBLEM_DEF_COUNT] =
 const u8 gEngageSkillUnlockCount = sizeof(gEngageSkillUnlocks) / sizeof(gEngageSkillUnlocks[0]);
 
 /**
- * gWeaponUnlocks[] — initially empty.
- * Tail-appends after gEngageSkillUnlocks (starts 0x09000124).
- * Size: gWeaponUnlockCount * sizeof(struct WeaponUnlock) = 0 bytes.
- *   -> ends 0x09000124 (no data emitted).
- * Marth's Rapier unlock lands in #85-C.
+ * gWeaponUnlocks[] tail-appends after gEngageSkillUnlocks (starts 0x09000148).
+ * Size: 1 * sizeof(struct WeaponUnlock) = 1 * 3 = 3 bytes (0x3)
+ *   -> ends 0x0900014B.
+ * Marth's Rapier at bond Lv 1. itemId is 0 (placeholder) — ITEM_RAPIER
+ * constant doesn't exist yet (tracked separately; not blocking #85).
+ * The other 11 emblems have no weapon unlocks in #85-C.
  * If you grow this table, re-audit the gap and update this comment.
  */
-CONST_DATA struct WeaponUnlock gWeaponUnlocks[1] = { 0 };
-const u8 gWeaponUnlockCount = 0;
+CONST_DATA struct WeaponUnlock gWeaponUnlocks[] =
+{
+    /* Marth — Rapier (placeholder itemId 0) at bond Lv 1 */
+    { .emblemId =  0, .bondLevel =  1, .itemId = 0 },
+};
+const u8 gWeaponUnlockCount = sizeof(gWeaponUnlocks) / sizeof(gWeaponUnlocks[0]);
 
 /**
- * gClassChangeUnlocks[] — initially empty.
- * Tail-appends after gWeaponUnlocks.
- * Size: gClassChangeUnlockCount * sizeof(struct ClassChangeUnlock) = 0 bytes.
- *   -> ends 0x09000124 (no data emitted).
- * Class-change flag data lands in #85-C.
+ * gClassChangeUnlocks[] tail-appends after gWeaponUnlocks (starts 0x0900014B).
+ * Size: 1 * sizeof(struct ClassChangeUnlock) = 1 * 2 = 2 bytes (0x2)
+ *   -> ends 0x0900014D.
+ * Marth's class change unlocks at bond Lv 8. The other 11 emblems have
+ * no class-change data in #85-C.
  * If you grow this table, re-audit the gap and update this comment.
  */
-CONST_DATA struct ClassChangeUnlock gClassChangeUnlocks[1] = { 0 };
-const u8 gClassChangeUnlockCount = 0;
+CONST_DATA struct ClassChangeUnlock gClassChangeUnlocks[] =
+{
+    /* Marth — class change at bond Lv 8 */
+    { .emblemId =  0, .bondLevel =  8 },
+};
+const u8 gClassChangeUnlockCount = sizeof(gClassChangeUnlocks) / sizeof(gClassChangeUnlocks[0]);
 
 /**
- * gSyncedBonuses[EMBLEM_DEF_COUNT][20] tail-appends after gClassChangeUnlocks.
- * Size: 12 * 20 * sizeof(struct BonusRow) = 240 * 4 = 960 bytes (0x3C0)
- *   -> ends 0x090004E4. (struct BonusRow is 28 bits used; compiler pads to 4.)
- * Cumulative stat bonus per (emblem, bondLevel). All rows zero-init per C99.
- * Marth's 20 populated rows land in #85-C.
+ * gSyncedBonuses[EMBLEM_DEF_COUNT][20] tail-appends after gClassChangeUnlocks
+ * (starts 0x0900014D). Size: 12 * 20 * sizeof(struct BonusRow) = 240 * 4 =
+ * 960 bytes (0x3C0) -> ends 0x0900050D.
+ * (struct BonusRow is 28 bits used; compiler pads to 4 bytes per row.)
+ *
+ * Cumulative stat bonus per (emblem, bondLevel). Engage bond bonuses are
+ * monotonic (never decrease) so cumulative encoding is valid. mag nibble
+ * stays 0 throughout (FE8's struct Unit has no .mag field yet).
+ *
+ * Marth's 20 rows (emblem 0) populated from the wiki bond-level table.
+ * The other 11 emblems get zero-init rows (their data lands in follow-ups).
+ *
  * If you grow this table, re-audit the gap and update this comment.
  */
-CONST_DATA struct BonusRow gSyncedBonuses[EMBLEM_DEF_COUNT][20] = { 0 };
+CONST_DATA struct BonusRow gSyncedBonuses[EMBLEM_DEF_COUNT][20] =
+{
+    /* Marth — cumulative bonuses at each bond level (Lv 1..Lv 20) */
+    [0][0]  = { .hp = 0, .str = 1, .mag = 0, .skl = 0, .spd = 1, .def = 0, .res = 0 }, /* Lv 1  */
+    [0][1]  = { .hp = 0, .str = 1, .mag = 0, .skl = 1, .spd = 1, .def = 0, .res = 0 }, /* Lv 2  */
+    [0][2]  = { .hp = 0, .str = 2, .mag = 0, .skl = 1, .spd = 1, .def = 0, .res = 0 }, /* Lv 3  */
+    [0][3]  = { .hp = 0, .str = 2, .mag = 0, .skl = 1, .spd = 1, .def = 1, .res = 0 }, /* Lv 4  */
+    [0][4]  = { .hp = 1, .str = 2, .mag = 0, .skl = 1, .spd = 1, .def = 1, .res = 0 }, /* Lv 5  */
+    [0][5]  = { .hp = 1, .str = 2, .mag = 0, .skl = 2, .spd = 1, .def = 1, .res = 0 }, /* Lv 6  */
+    [0][6]  = { .hp = 1, .str = 3, .mag = 0, .skl = 2, .spd = 1, .def = 1, .res = 0 }, /* Lv 7  */
+    [0][7]  = { .hp = 1, .str = 3, .mag = 0, .skl = 2, .spd = 2, .def = 1, .res = 0 }, /* Lv 8  */
+    [0][8]  = { .hp = 1, .str = 3, .mag = 0, .skl = 2, .spd = 2, .def = 1, .res = 1 }, /* Lv 9  */
+    [0][9]  = { .hp = 1, .str = 3, .mag = 0, .skl = 3, .spd = 2, .def = 1, .res = 1 }, /* Lv 10 */
+    [0][10] = { .hp = 2, .str = 3, .mag = 0, .skl = 3, .spd = 2, .def = 1, .res = 1 }, /* Lv 11 */
+    [0][11] = { .hp = 2, .str = 4, .mag = 0, .skl = 3, .spd = 2, .def = 1, .res = 1 }, /* Lv 12 */
+    [0][12] = { .hp = 2, .str = 4, .mag = 0, .skl = 3, .spd = 3, .def = 1, .res = 1 }, /* Lv 13 */
+    [0][13] = { .hp = 2, .str = 4, .mag = 0, .skl = 4, .spd = 3, .def = 1, .res = 1 }, /* Lv 14 */
+    [0][14] = { .hp = 2, .str = 4, .mag = 0, .skl = 4, .spd = 3, .def = 2, .res = 1 }, /* Lv 15 */
+    [0][15] = { .hp = 2, .str = 5, .mag = 0, .skl = 4, .spd = 3, .def = 2, .res = 1 }, /* Lv 16 */
+    [0][16] = { .hp = 3, .str = 5, .mag = 0, .skl = 4, .spd = 3, .def = 2, .res = 1 }, /* Lv 17 */
+    [0][17] = { .hp = 3, .str = 5, .mag = 0, .skl = 5, .spd = 3, .def = 2, .res = 1 }, /* Lv 18 */
+    [0][18] = { .hp = 3, .str = 5, .mag = 0, .skl = 5, .spd = 4, .def = 2, .res = 1 }, /* Lv 19 */
+    [0][19] = { .hp = 3, .str = 5, .mag = 0, .skl = 5, .spd = 4, .def = 2, .res = 2 }, /* Lv 20 */
+    /* emblems 1..11 zero-init per C99 */
+};

@@ -25,9 +25,10 @@ static void test_synced_bonus_table_size(void)
 }
 
 // 4. Zero-init state for #85-A: every row's first nibble (hp) is 0.
+// Emblems 1..11 still have zero-init rows in #85-C (only Marth populated).
 static void test_synced_bonus_zero_init(void)
 {
-    for (unsigned e = 0; e < EMBLEM_DEF_COUNT; ++e)
+    for (unsigned e = 1; e < EMBLEM_DEF_COUNT; ++e)
         for (unsigned l = 0; l < 20; ++l)
             TEST_ASSERT_EQUAL_UINT(0, gSyncedBonuses[e][l].hp);
 }
