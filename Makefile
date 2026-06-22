@@ -17,7 +17,7 @@ ifeq ($(UNAME),Darwin)
 	SHELL := env PATH=$(PATH) /bin/bash
 endif
 
-CPP ?= $(PREFIX)cpp$(EXE)
+CPP := $(PREFIX)cpp$(EXE)
 AS := $(PREFIX)as$(EXE)
 LD := $(PREFIX)ld$(EXE)
 OBJCOPY := $(PREFIX)objcopy$(EXE)
