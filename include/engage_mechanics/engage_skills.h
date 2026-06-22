@@ -3,6 +3,8 @@
 
 #include "gba/types.h"
 #include "engage_mechanics/engage_data.h"
+#include "engage_mechanics/engage_skill_registry.h"
+#include "engage_mechanics/engage_bond_unlocks.h"
 
 /* Max sync skill slots any single emblem can hold. Drives struct
  * EmblemSyncSkills.skills[] size. Marth has 6 in real data; the rest have 5.
@@ -12,37 +14,23 @@ enum { SKILL_DEF_COUNT_SYNC_MAX = 6, SKILL_DEF_COUNT_ENGAGE = 1 };
 
 enum SkillEffectKind
 {
-    SKILL_EFFECT_NONE         = 0,
-    SKILL_EFFECT_HP_PCT       = 1, // +X% max HP (X = value)
-    SKILL_EFFECT_BATTLE_ATK   = 2, // +N atk during battle
-    SKILL_EFFECT_BATTLE_HIT   = 3, // +N hit during battle
-    SKILL_EFFECT_BATTLE_AVO   = 4, // +N avoid during battle
-    SKILL_EFFECT_BATTLE_CRIT  = 5, // +N crit during battle
-    SKILL_EFFECT_BREAK        = 6, // stub: no-op until #16 wires it up
-    SKILL_EFFECT_DUAL_STRIKE  = 7, // stub: forces a follow-up
+    SKILL_EFFECT_NONE                = 0,
+    SKILL_EFFECT_HP_PCT              = 1, // +X% max HP (X = value)
+    SKILL_EFFECT_BATTLE_ATK          = 2, // +N atk during battle
+    SKILL_EFFECT_BATTLE_HIT          = 3, // +N hit during battle
+    SKILL_EFFECT_BATTLE_AVO          = 4, // +N avoid during battle
+    SKILL_EFFECT_BATTLE_CRIT         = 5, // +N crit during battle
+    SKILL_EFFECT_BREAK               = 6, // stub: no-op until #16 wires it up
+    SKILL_EFFECT_DUAL_STRIKE         = 7, // stub: forces a follow-up
+    SKILL_EFFECT_PERCEPTIVE          = 8, // +hit/avo when adjacent to ally
+    SKILL_EFFECT_PERCEPTIVE_PLUS     = 9, // upgraded form (Marth Lv 16)
+    SKILL_EFFECT_BREAK_DEFENSES      = 10, // +dmg vs defending (was generic BREAK)
+    SKILL_EFFECT_UNYIELDING          = 11, // +dmg when low HP
+    SKILL_EFFECT_UNYIELDING_PLUS     = 12, // upgraded form (Marth Lv 12)
+    SKILL_EFFECT_UNYIELDING_PLUS_PLUS = 13, // upgraded form (Marth Lv 18)
+    SKILL_EFFECT_SWORD_AGILITY       = 14, // +spd with sword; .value = tier 1..5
+    SKILL_EFFECT_AVOID_BONUS         = 15, // +avoid; .value = 10/15/20/25/30
 };
-
-struct SkillDef
-{
-    u8  kind;       // SkillEffectKind
-    s8  value;      // signed stat delta (HP_PCT stores X here)
-    u8  emblemId;   // owning Emblem (0..11)
-    u8  tier;       // bond tier that unlocks this skill (1/3/5/9/15)
-    u8  _pad[4];    // reserved for future fields; pin size
-};
-
-/* One block per emblem: .count is the live skill count, .skills[] is the
- * fixed-size storage. Lets each emblem carry a different number of sync
- * skills (Marth = 6, others = 5) without per-lookup index math or sentinel
- * walks. Unused slots in .skills[] stay zero-init per C99. */
-struct EmblemSyncSkills
-{
-    u8 count;
-    struct SkillDef skills[SKILL_DEF_COUNT_SYNC_MAX];
-};
-
-extern struct EmblemSyncSkills gSyncSkillDefs[EMBLEM_DEF_COUNT];
-extern struct SkillDef gEngageSkillDefs[EMBLEM_DEF_COUNT * SKILL_DEF_COUNT_ENGAGE];
 
 /* Real structs on GBA + Linux host; minimal mirror on macOS where bmunit.h
  * is not host-linkable (variables.h uses Mach-O-incompatible section attrs).
