@@ -1,4 +1,5 @@
 #include "global.h"
+#include "engage_mechanics/engage_api.h"
 
 #include <string.h>
 
@@ -224,6 +225,9 @@ void InitUnits(void) {
             unit->index = i;
         }
     }
+#if ENGAGE_METER_ENABLED
+    ResetAllEngageMeters();
+#endif
 }
 
 void ClearUnit(struct Unit* unit) {

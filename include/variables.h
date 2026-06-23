@@ -11,6 +11,9 @@ extern u8 __ewram_start[];
 // extern ??? gSaveMenuSubBoxFont
 // extern ??? gSaveMenuSubBoxText
 extern u8 gPlayStChapterBits[];
+extern u8 gEngageMeterBlue[62];
+extern u8 gEngageMeterRed[50];
+extern u8 gEngageMeterGreen[20];
 extern u8 gPlayStChapterMode[];
 extern struct PlaySt_OptionBits gPlayStOptionBits[];
 

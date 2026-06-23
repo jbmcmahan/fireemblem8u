@@ -13,3 +13,21 @@ u8 EngageMeter_Clamp(u16 value);
 bool8 EngageMeter_IsFull(u8 value);
 
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_METER_H
+
+/* Forward declaration for unit-aware wrappers (GBA-only) */
+struct Unit;
+
+/* Pure helper: returns meter slot for a unit index, -1 if invalid */
+s8 EngageMeter_SlotForUnit(u8 index);
+
+/* Unit-aware wrappers (implemented in engage_meter_hook.c) */
+/* Returns current engage meter value for a unit */
+u8 GetEngageMeter(struct Unit* unit);
+/* Adds amount to unit's engage meter, returns new value */
+u8 AddEngageMeter(struct Unit* unit, u8 amount);
+/* Sets unit's engage meter to value (clamped) */
+void SetEngageMeter(struct Unit* unit, u8 value);
+/* Resets a single unit's engage meter to 0 */
+void ResetEngageMeter(struct Unit* unit);
+/* Resets all engage meters (per chapter) */
+void ResetAllEngageMeters(void);
