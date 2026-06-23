@@ -15,9 +15,6 @@ struct EmblemDef
     /* 1-byte item ID of the Emblem's engage weapon. */
     u8 engageWeaponItemId;
 
-    /* Sync skills inherited while bonded. Zero = none for now. */
-    u8 syncSkills[5];
-
     /* ID of the engage skill. Zero = unassigned. */
     u8 engageSkill;
 

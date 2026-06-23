@@ -6,10 +6,8 @@
 #include "engage_mechanics/engage_skill_registry.h"
 #include "engage_mechanics/engage_bond_unlocks.h"
 
-/* Max sync skill slots any single emblem can hold. Drives struct
- * EmblemSyncSkills.skills[] size. Marth has 6 in real data; the rest have 5.
- * Bumping this grows every emblem's reserved storage even if unused slots
- * stay zero-init, so pick the highest known count plus a little headroom. */
+/* Max sync skill slots any single emblem can hold. Marth has 6 in real data;
+ * the rest have 5. Used to size gSyncSkillDefs[]. */
 enum { SKILL_DEF_COUNT_SYNC_MAX = 6, SKILL_DEF_COUNT_ENGAGE = 1 };
 
 enum SkillEffectKind
