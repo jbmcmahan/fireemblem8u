@@ -205,7 +205,8 @@ struct GameSavePackedUnit {       /* Save Data */
     /* 14 */ u8 pid;
     /* 15 */ u8 wpnRanks[0x8];
     /* 1D */ u8 supports[UNIT_SUPPORT_MAX_COUNT];
-    /* 24 */
+    /* 24 */ u8 mag;       /* #95 — magic stat, 0 for vanilla units */
+    /* 28 */               /* aligned(4) trailing pad */
 } BITPACKED;
 
 enum packed_unit_state_bits {
@@ -264,7 +265,8 @@ struct SuspendSavePackedUnit {     /* Suspend Data */
     
     /* 31 */ u8 ai_counter;
     /* 32 */ u16 ai_config;
-    /* 34 */
+    /* 34 */ u8 mag;       /* #95 — magic stat, 0 for vanilla units */
+    /* 38 */               /* aligned(4) trailing pad */
 } BITPACKED;
 
 /* link arena */

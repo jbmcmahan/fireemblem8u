@@ -280,6 +280,8 @@ void InitBattleUnit(struct BattleUnit* bu, struct Unit* unit) {
     bu->unit.conBonus = UNIT_CON(unit);
     bu->unit.movBonus = UNIT_MOV(unit);
 
+    bu->battleMagic = bu->unit.mag;
+
     bu->levelPrevious = bu->unit.level;
     bu->expPrevious = bu->unit.exp;
 
