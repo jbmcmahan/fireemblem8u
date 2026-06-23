@@ -5,10 +5,10 @@ void setUp(void) {}
 void tearDown(void) {}
 
 // 1. Pin the host size so accidental field additions break the build.
-//    struct SkillDef is { u8 kind; s8 value; } — host size = 2 bytes.
-static void test_skilldef_size_is_2_bytes(void)
+//    struct SkillDef is { u8 kind; s8 value; u8 group; u8 _pad; } — host size = 4 bytes.
+static void test_skilldef_size_is_4_bytes(void)
 {
-    TEST_ASSERT_EQUAL_UINT(2, sizeof(struct SkillDef));
+    TEST_ASSERT_EQUAL_UINT(4, sizeof(struct SkillDef));
 }
 
 // 2. Sentinel slot is the SKILL_EFFECT_NONE row.
@@ -56,7 +56,7 @@ static void test_new_marth_skill_names_present(void)
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_skilldef_size_is_2_bytes);
+    RUN_TEST(test_skilldef_size_is_4_bytes);
     RUN_TEST(test_skilldef_index_zero_is_none);
     RUN_TEST(test_skill_def_count_at_least_64);
     RUN_TEST(test_skill_def_table_size);

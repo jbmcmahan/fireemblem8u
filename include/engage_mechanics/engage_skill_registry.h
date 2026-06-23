@@ -15,6 +15,8 @@ struct SkillDef
 {
     u8 kind;     // SkillEffectKind
     s8 value;    // signed stat delta (HP_PCT stores X here)
+    u8 group;    // SkillGroupKind for suppression
+    u8 _pad;     // pad to 4 bytes
 };
 
 /* Index 0 reserved as the SKILL_EFFECT_NONE sentinel. Grow as needed. */
