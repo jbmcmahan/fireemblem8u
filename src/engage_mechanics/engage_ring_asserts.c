@@ -4,19 +4,13 @@
 //
 // On macOS, the host test build cannot include bmunit.h (transitively
 // pulls in variables.h, which uses Mach-O-incompatible section
-// attributes). The GBA build (the authoritative one for this size
-// contract) always includes bmunit.h and asserts against the real
-// struct Unit. A minimal mirror struct with the same 1-byte field
-// property is used on macOS so `make test` can still build and the
-// assert is still a meaningful compile-time check on that platform.
+// attributes). The canonical host-side mirror lives in
+// tests/test_support/unit_mirror.h and carries offsetof static_asserts
+// that ensure the mirror stays in sync with the GBA layout.
 #if !defined(__APPLE__)
 #include "bmunit.h"
 #else
-struct Unit
-{
-    unsigned char ringSlot;
-    unsigned char ringEngageState;
-};
+#include "test_support/unit_mirror.h"
 #endif
 
 _Static_assert(sizeof(((struct Unit *)0)->ringSlot) == 1,
