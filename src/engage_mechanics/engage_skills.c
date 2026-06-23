@@ -46,7 +46,7 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
             case SKILL_EFFECT_BATTLE_CRIT: bu->battleCritRate  += sk.value; break;
             case SKILL_EFFECT_HP_PCT:      /* deferred: no battleMaxHp field */ break;
             case SKILL_EFFECT_BREAK:       /* stub: wired in #16 */ break;
-            case SKILL_EFFECT_DUAL_STRIKE: /* stub: chain-attack issue */ break;
+            case SKILL_EFFECT_DUAL_STRIKE: /* applied in Engage_BattleGetFollowUpOrder hook */ break;
             default: break;
             }
         }
@@ -70,6 +70,7 @@ void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
         case SKILL_EFFECT_BATTLE_HIT:  bu->battleHitRate   += sk.value; break;
         case SKILL_EFFECT_BATTLE_AVO:  bu->battleAvoidRate += sk.value; break;
         case SKILL_EFFECT_BATTLE_CRIT: bu->battleCritRate  += sk.value; break;
+        case SKILL_EFFECT_DUAL_STRIKE: /* Applied in Engage_BattleGetFollowUpOrder hook, not here. */ break;
         default: break;
         }
     }

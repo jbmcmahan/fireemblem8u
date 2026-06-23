@@ -144,7 +144,7 @@ void InitBattleForecastBattleStats(struct BattleForecastProc * proc)
     int usesA = GetItemUses(gBattleActor.weaponBefore);
     int usesB = GetItemUses(gBattleTarget.weaponBefore);
 
-    s8 followUp = BattleGetFollowUpOrder(&buFirst, &buSecond);
+    s8 followUp = Engage_BattleGetFollowUpOrder(&buFirst, &buSecond);
 
     proc->hitCountA = 0;
     proc->isEffectiveA = 0;

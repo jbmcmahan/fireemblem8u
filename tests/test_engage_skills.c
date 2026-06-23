@@ -245,6 +245,20 @@ static void test_has_inherited_skill_stub(void)
     TEST_ASSERT_EQUAL_INT(0, HasInheritedSkill(&u, 7));
 }
 
+static void test_engage_dual_strike_no_stat_change(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0; /* Marth */
+    u.ringBondLevel = 15;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    ApplyEngageSkillToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -270,5 +284,6 @@ int main(void)
     RUN_TEST(test_resolver_hppct_deferred_noop);
     RUN_TEST(test_engage_skill_idempotent);
     RUN_TEST(test_has_inherited_skill_stub);
+    RUN_TEST(test_engage_dual_strike_no_stat_change);
     return UNITY_END();
 }

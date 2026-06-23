@@ -743,10 +743,11 @@ void BattleUnwind(void) {
         if (!BattleGenerateRoundHits(attacker, defender)) {
             gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_RETALIATE;
 
-            if (!BattleGenerateRoundHits(defender, attacker) && BattleGetFollowUpOrder(&attacker, &defender)) {
+            if (!BattleGenerateRoundHits(defender, attacker) && Engage_BattleGetFollowUpOrder(&attacker, &defender)) {
                 gBattleHitIterator->attributes = BATTLE_HIT_ATTR_FOLLOWUP;
 
                 BattleGenerateRoundHits(attacker, defender);
+                Engage_ConsumeDualStrike();
             }
         }
     } while (FALSE);

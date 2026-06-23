@@ -226,6 +226,8 @@ s8 BattleRoll2RN(u16 threshold, s8 simResult);
 
 void ComputeBattleUnitStats(struct BattleUnit* attacker, struct BattleUnit* defender);
 void Engage_ComputeBattleUnitStats(struct BattleUnit* attacker, struct BattleUnit* defender);
+s8 Engage_BattleGetFollowUpOrder(struct BattleUnit** outAttacker, struct BattleUnit** outDefender);
+void Engage_ConsumeDualStrike(void);
 void ComputeBattleUnitEffectiveStats(struct BattleUnit* attacker, struct BattleUnit* defender);
 void ComputeBattleUnitSupportBonuses(struct BattleUnit* attacker, struct BattleUnit* defender);
 void ComputeBattleUnitDefense(struct BattleUnit* attacker, struct BattleUnit* defender);
