@@ -18,58 +18,58 @@ enum {
 };
 
 struct BattleUnit {
-    /* 00 */ struct Unit unit;
+    /* 00 */ struct Unit unit; /* sizeof = 0x4C (0x49 data + 3-byte align pad) */
 
-    /* 48 */ u16 weapon;
-    /* 4A */ u16 weaponBefore;
-    /* 4C */ u32 weaponAttributes;
-    /* 50 */ u8 weaponType;
-    /* 51 */ u8 weaponSlotIndex;
+    /* 4C */ u16 weapon;
+    /* 4E */ u16 weaponBefore;
+    /* 50 */ u32 weaponAttributes;
+    /* 54 */ u8 weaponType;
+    /* 55 */ u8 weaponSlotIndex;
 
-    /* 52 */ s8 canCounter;
+    /* 56 */ s8 canCounter;
 
-    /* 53 */ s8 wTriangleHitBonus;
-    /* 54 */ s8 wTriangleDmgBonus;
+    /* 57 */ s8 wTriangleHitBonus;
+    /* 58 */ s8 wTriangleDmgBonus;
 
-    /* 55 */ u8 terrainId;
-    /* 56 */ s8 terrainDefense;
-    /* 57 */ s8 terrainAvoid;
-    /* 58 */ s8 terrainResistance;
-    /* 59 */ /* pad */
+    /* 59 */ u8 terrainId;
+    /* 5A */ s8 terrainDefense;
+    /* 5B */ s8 terrainAvoid;
+    /* 5C */ s8 terrainResistance;
+    /* 5D */ s8 battleMagic; /* #95 — parallel to battleAttack; init from unit.mag */
 
-    /* 5A */ short battleAttack;
-    /* 5C */ short battleDefense;
-    /* 5E */ short battleSpeed;
-    /* 60 */ short battleHitRate;
-    /* 62 */ short battleAvoidRate;
-    /* 64 */ short battleEffectiveHitRate;
-    /* 66 */ short battleCritRate;
-    /* 68 */ short battleDodgeRate;
-    /* 6A */ short battleEffectiveCritRate;
-    /* 6C */ short battleSilencerRate;
+    /* 5E */ short battleAttack;
+    /* 60 */ short battleDefense;
+    /* 62 */ short battleSpeed;
+    /* 64 */ short battleHitRate;
+    /* 66 */ short battleAvoidRate;
+    /* 68 */ short battleEffectiveHitRate;
+    /* 6A */ short battleCritRate;
+    /* 6C */ short battleDodgeRate;
+    /* 6E */ short battleEffectiveCritRate;
+    /* 70 */ short battleSilencerRate;
 
-    /* 6E */ s8 expGain;
-    /* 6F */ s8 statusOut;
-    /* 70 */ s8 levelPrevious;
-    /* 71 */ s8 expPrevious;
+    /* 72 */ s8 expGain;
+    /* 73 */ s8 statusOut;
+    /* 74 */ s8 levelPrevious;
+    /* 75 */ s8 expPrevious;
 
-    /* 72 */ s8 hpInitial;
+    /* 76 */ s8 hpInitial;
 
-    /* 73 */ s8 changeHP;
-    /* 74 */ s8 changePow;
-    /* 75 */ s8 changeSkl;
-    /* 76 */ s8 changeSpd;
-    /* 77 */ s8 changeDef;
-    /* 78 */ s8 changeRes;
-    /* 79 */ s8 changeLck;
-    /* 7A */ s8 changeCon;
+    /* 77 */ s8 changeHP;
+    /* 78 */ s8 changePow;
+    /* 79 */ s8 changeSkl;
+    /* 7A */ s8 changeSpd;
+    /* 7B */ s8 changeDef;
+    /* 7C */ s8 changeRes;
+    /* 7D */ s8 changeLck;
+    /* 7E */ s8 changeCon;
 
-    /* 7B */ s8 wexpMultiplier;
-    /* 7C */ s8 nonZeroDamage;
-    /* 7D */ s8 weaponBroke;
+    /* 7F */ s8 wexpMultiplier;
+    /* 80 */ s8 nonZeroDamage;
+    /* 81 */ s8 weaponBroke;
 
-    /* 7E */ s8 hasItemEffectTarget;
-    /* 7F */ /* pad */
+    /* 82 */ s8 hasItemEffectTarget;
+    /* 83 */ /* pad */
 };
 
 struct BattleStats {

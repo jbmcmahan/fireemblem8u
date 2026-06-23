@@ -181,6 +181,11 @@ struct Unit
 
     /* pad */
     /* 47 */ u8 _u47;
+
+    /* 48 */ u8 mag; /* #95 — Magic stat. FE8 vanilla has no separate mag;
+                      * magic uses RES. Zero for all vanilla units (ClearUnit
+                      * zero-fills). Engage bond bonuses write here via the
+                      * synced bonus resolver (deferred). */
 };
 
 enum udef_ai_index {

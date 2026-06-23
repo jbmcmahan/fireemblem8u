@@ -372,6 +372,8 @@ void WriteGameSavePackedUnit(struct Unit *unit, void *sram_dest)
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unitp.supports[i] = unit->supports[i];
 
+    unitp.mag = unit->mag;
+
     WriteAndVerifySramFast(&unitp, sram_dest, sizeof(unitp));
 }
 
@@ -439,6 +441,8 @@ void LoadSavedUnit(const void *sram_src, struct Unit *unit)
 
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unit->supports[i] = unitp.supports[i];
+
+    unit->mag = unitp.mag;
 
     SetUnitHp(unit, GetUnitMaxHp(unit));
     unit->supportBits = 0;
@@ -680,7 +684,8 @@ void EncodeSuspendSavePackedUnit(struct Unit *unit, void *buf)
     unit_su->ai_b_pc = unit->ai_b_pc;
     unit_su->ai_config = unit->ai_config;
     unit_su->ai_counter = unit->ai_counter;
-    unit_su->aiFlags = unit->aiFlags; 
+    unit_su->aiFlags = unit->aiFlags;
+    unit_su->mag = unit->mag;
 }
 
 void ReadSuspendSavePackedUnit(const void *sram_src, struct Unit *unit)
@@ -743,6 +748,7 @@ void ReadSuspendSavePackedUnit(const void *sram_src, struct Unit *unit)
     unit->ai_config = unit_su.ai_config;
     unit->ai_counter = unit_su.ai_counter;
     unit->aiFlags = unit_su.aiFlags;
+    unit->mag = unit_su.mag;
 
     if (0x7F == unit->exp)
         unit->exp = -1;
