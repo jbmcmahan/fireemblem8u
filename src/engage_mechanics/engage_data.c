@@ -62,7 +62,7 @@ CONST_DATA struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT] =
  *   0x090000D0. (SkillDef is u8+s8; alignment 1 on both host and GBA.)
  * index 0 = SKILL_EFFECT_NONE sentinel; indices 1..5 = generic kinds from
  *   #78 placeholder data (HP_PCT, BATTLE_ATK, BATTLE_HIT, BATTLE_AVO,
- *   BATTLE_CRIT); index 6 = BREAK, index 7 = DUAL_STRIKE placeholders;
+ *   BATTLE_CRIT); index 6 = BREAK, index 7 = DIVINE_SPEED placeholders;
  *   indices 8..15 = the new Marth-specific skill names from the #86 wiki
  *   table (PERCEPTIVE, PERCEPTIVE_PLUS, BREAK_DEFENSES, UNYIELDING,
  *   UNYIELDING_PLUS, UNYIELDING_PLUS_PLUS, SWORD_AGILITY, AVOID_BONUS).
@@ -78,7 +78,7 @@ CONST_DATA struct SkillDef gSkillDefs[SKILL_DEF_COUNT] =
     [4] = { .kind = SKILL_EFFECT_BATTLE_AVO,       .value = 10 },
     [5] = { .kind = SKILL_EFFECT_BATTLE_CRIT,      .value =  5 },
     [6] = { .kind = SKILL_EFFECT_NONE,             .value =  0 }, // was BREAK placeholder
-    [7] = { .kind = SKILL_EFFECT_DUAL_STRIKE,      .value =  0 }, // Marth's engage skill from #78
+    [7] = { .kind = SKILL_EFFECT_DIVINE_SPEED,      .value =  0 }, // Marth's engage skill from #78
     [8] = { .kind = SKILL_EFFECT_PERCEPTIVE,       .value =  0 },
     [9] = { .kind = SKILL_EFFECT_PERCEPTIVE_PLUS,  .value =  0 },
     [10] = { .kind = SKILL_EFFECT_BREAK_DEFENSES,  .value =  0 },
@@ -153,14 +153,14 @@ const u8 gInheritSkillUnlockCount = sizeof(gInheritSkillUnlocks) / sizeof(gInher
  * gEngageSkillUnlocks[] tail-appends after gInheritSkillUnlocks.
  * Size: 12 * sizeof(struct SkillUnlock) = 12 * 3 = 36 bytes (0x24)
  *   -> ends 0x09000124.
- * One engage skill per Emblem in canonical order. Marth (id 0) gets DUAL_STRIKE
+ * One engage skill per Emblem in canonical order. Marth (id 0) gets DIVINE_SPEED
  * (skillId = 7) translated from the old gEngageSkillDefs (PR #78). The other 11
  * entries point at skillId = 0 (SKILL_EFFECT_NONE sentinel) until later data issues.
  * If you grow this table, re-audit the gap and update this comment.
  */
 CONST_DATA struct SkillUnlock gEngageSkillUnlocks[EMBLEM_DEF_COUNT] =
 {
-    [ 0] = { .emblemId =  0, .bondLevel = 0, .skillId = 7 }, // Marth — DUAL_STRIKE
+    [ 0] = { .emblemId =  0, .bondLevel = 0, .skillId = 7 }, // Marth — DIVINE_SPEED
     [ 1] = { .emblemId =  1, .bondLevel = 0, .skillId = 0 }, // Celica
     [ 2] = { .emblemId =  2, .bondLevel = 0, .skillId = 0 }, // Sigurd
     [ 3] = { .emblemId =  3, .bondLevel = 0, .skillId = 0 }, // Leif

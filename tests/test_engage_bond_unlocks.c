@@ -61,10 +61,10 @@ static void test_marth_t1_sync_skill_is_perceptive(void)
                            gSkillDefs[gSyncSkillUnlocks[0].skillId].kind);
 }
 
-// 6. Marth's engage skill skillId indexes gSkillDefs[DUAL_STRIKE].
-static void test_marth_engage_skill_is_dual_strike(void)
+// 6. Marth's engage skill skillId indexes gSkillDefs[DIVINE_SPEED].
+static void test_marth_engage_skill_is_divine_speed(void)
 {
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_DUAL_STRIKE,
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_DIVINE_SPEED,
                            gSkillDefs[gEngageSkillUnlocks[0].skillId].kind);
 }
 
@@ -80,6 +80,6 @@ int main(void)
     RUN_TEST(test_class_change_unlock_count_is_1);
     RUN_TEST(test_engage_skill_unlock_count_is_12);
     RUN_TEST(test_marth_t1_sync_skill_is_perceptive);
-    RUN_TEST(test_marth_engage_skill_is_dual_strike);
+    RUN_TEST(test_marth_engage_skill_is_divine_speed);
     return UNITY_END();
 }

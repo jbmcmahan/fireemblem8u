@@ -25,7 +25,7 @@ static void test_skill_effect_kinds_distinct(void)
         SKILL_EFFECT_BATTLE_AVO,
         SKILL_EFFECT_BATTLE_CRIT,
         SKILL_EFFECT_BREAK,
-        SKILL_EFFECT_DUAL_STRIKE,
+        SKILL_EFFECT_DIVINE_SPEED,
         SKILL_EFFECT_PERCEPTIVE,
         SKILL_EFFECT_PERCEPTIVE_PLUS,
         SKILL_EFFECT_BREAK_DEFENSES,
@@ -141,10 +141,10 @@ static void test_marth_mag_nibble_unused(void)
         TEST_ASSERT_EQUAL_UINT(0, gSyncedBonuses[0][i].mag);
 }
 
-// Marth's engage skill is DUAL_STRIKE (via gEngageSkillUnlocks + gSkillDefs).
-static void test_marth_engage_skill_is_dual_strike(void)
+// Marth's engage skill is DIVINE_SPEED (via gEngageSkillUnlocks + gSkillDefs).
+static void test_marth_engage_skill_is_divine_speed(void)
 {
-    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_DUAL_STRIKE,
+    TEST_ASSERT_EQUAL_UINT(SKILL_EFFECT_DIVINE_SPEED,
                            gSkillDefs[gEngageSkillUnlocks[0].skillId].kind);
 }
 
@@ -229,11 +229,11 @@ static void test_engage_skill_idempotent(void)
     u.ringBondLevel = 15;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplyEngageSkillToBattleUnit(&bu, &u, 1);
-    // Marth's engage skill is DUAL_STRIKE (no stat apply). Flag set.
-    TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
+    // Marth's engage skill is DIVINE_SPEED (deferred). Flag not set yet.
+    TEST_ASSERT_EQUAL_INT(0, u.uEngageSkillUsed);
     // Calling again is a no-op (idempotent).
     ApplyEngageSkillToBattleUnit(&bu, &u, 1);
-    TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
+    TEST_ASSERT_EQUAL_INT(0, u.uEngageSkillUsed);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
 }
 
@@ -262,7 +262,7 @@ int main(void)
     RUN_TEST(test_marth_lv1_bonus);
     RUN_TEST(test_marth_lv18_bonus);
     RUN_TEST(test_marth_mag_nibble_unused);
-    RUN_TEST(test_marth_engage_skill_is_dual_strike);
+    RUN_TEST(test_marth_engage_skill_is_divine_speed);
     RUN_TEST(test_resolver_no_ring_noop);
     RUN_TEST(test_resolver_bond0_noop);
     RUN_TEST(test_resolver_bond15_marth_cumulative);

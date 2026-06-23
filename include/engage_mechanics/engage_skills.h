@@ -19,7 +19,7 @@ enum SkillEffectKind
     SKILL_EFFECT_BATTLE_AVO          = 4, // +N avoid during battle
     SKILL_EFFECT_BATTLE_CRIT         = 5, // +N crit during battle
     SKILL_EFFECT_BREAK               = 6, // stub: no-op until #16 wires it up
-    SKILL_EFFECT_DUAL_STRIKE         = 7, // stub: forces a follow-up
+    SKILL_EFFECT_DIVINE_SPEED        = 7, // half-damage follow-up, shared primitive
     SKILL_EFFECT_PERCEPTIVE          = 8, // +hit/avo when adjacent to ally
     SKILL_EFFECT_PERCEPTIVE_PLUS     = 9, // upgraded form (Marth Lv 16)
     SKILL_EFFECT_BREAK_DEFENSES      = 10, // +dmg vs defending (was generic BREAK)
@@ -115,5 +115,6 @@ struct BattleUnit {
 void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator);
 void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator);
 bool8 HasInheritedSkill(struct Unit *unit, u8 skillId);
+bool8 Engage_ShouldForceDivineSpeed(struct Unit *unit);
 
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_SKILLS_H

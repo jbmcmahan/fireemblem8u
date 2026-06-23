@@ -17,3 +17,23 @@ void Engage_ComputeBattleUnitStats(struct BattleUnit* attacker, struct BattleUni
         ApplySyncSkillsToBattleUnit(attacker, &attacker->unit, true);
     }
 }
+
+// Follow-up hook for Divine Speed
+s8 Engage_GetFollowUpOrder(struct BattleUnit** outAttacker, struct BattleUnit** outDefender)
+{
+    s8 result = BattleGetFollowUpOrder(outAttacker, outDefender);
+    if (result) return TRUE; // vanilla follow-up
+
+    if (gBattleStats.config & BATTLE_CONFIG_SIMULATE) return FALSE;
+
+    if (Engage_ShouldForceDivineSpeed(&gBattleActor.unit))
+    {
+        *outAttacker = &gBattleActor;
+        *outDefender = &gBattleTarget;
+        gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_HALFDMG;
+        gBattleActor.unit.uEngageSkillUsed = 1;
+        return TRUE;
+    }
+
+    return FALSE;
+}

@@ -122,7 +122,7 @@ enum {
     BATTLE_HIT_ATTR_HPHALVE   = (1 << 9),
     BATTLE_HIT_ATTR_TATTACK   = (1 << 10), // triangle attack!
     BATTLE_HIT_ATTR_SILENCER  = (1 << 11),
-    BATTLE_HIT_ATTR_12        = (1 << 12), // unused?
+    BATTLE_HIT_ATTR_HALFDMG    = (1 << 12), // engage: this hit deals half damage (Divine Speed / Break Defenses)
     BATTLE_HIT_ATTR_PETRIFY   = (1 << 13),
     BATTLE_HIT_ATTR_SURESHOT  = (1 << 14),
     BATTLE_HIT_ATTR_GREATSHLD = (1 << 15),
@@ -179,6 +179,7 @@ void ClearBattleHits(void);
 void BattleUnwind(void);
 void BattleGetBattleUnitOrder(struct BattleUnit** outAttacker, struct BattleUnit** outDefender);
 s8 BattleGetFollowUpOrder(struct BattleUnit** outAttacker, struct BattleUnit** outDefender);
+s8 Engage_GetFollowUpOrder(struct BattleUnit** outAttacker, struct BattleUnit** outDefender);
 void BattleApplyExpGains(void);
 int GetAutoleveledStatIncrease(int growth, int levelCount);
 s8 CanBattleUnitGainLevels(struct BattleUnit* bu);

@@ -18,6 +18,7 @@
 #include "bmsave.h"
 #include "ekrbattle.h"
 #include "bmbattle.h"
+#include "engage_mechanics/engage_api.h"
 #include "mapanim.h"
 #include "worldmap.h"
 
@@ -112,6 +113,11 @@ void BattleGenerateSimulationInternal(struct Unit* actor, struct Unit* target, i
 void BattleGenerateRealInternal(struct Unit* actor, struct Unit* target) {
     InitBattleUnit(&gBattleActor, actor);
     InitBattleUnit(&gBattleTarget, target);
+
+#if ENGAGE_ENABLED
+    gBattleActor.unit.uEngageSkillUsed = 0;
+    gBattleTarget.unit.uEngageSkillUsed = 0;
+#endif
 
     gBattleStats.range = RECT_DISTANCE(
         gBattleActor.unit.xPos, gBattleActor.unit.yPos,
@@ -743,8 +749,8 @@ void BattleUnwind(void) {
         if (!BattleGenerateRoundHits(attacker, defender)) {
             gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_RETALIATE;
 
-            if (!BattleGenerateRoundHits(defender, attacker) && BattleGetFollowUpOrder(&attacker, &defender)) {
-                gBattleHitIterator->attributes = BATTLE_HIT_ATTR_FOLLOWUP;
+            if (!BattleGenerateRoundHits(defender, attacker) && Engage_GetFollowUpOrder(&attacker, &defender)) {
+                gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_FOLLOWUP;
 
                 BattleGenerateRoundHits(attacker, defender);
             }
@@ -1045,6 +1051,9 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
 
     if (gBattleStats.damage < 0)
         gBattleStats.damage = 0;
+
+    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_HALFDMG)
+        gBattleStats.damage /= 2;
 
     BattleCheckPetrify(attacker, defender);
 

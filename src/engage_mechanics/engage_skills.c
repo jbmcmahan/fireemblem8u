@@ -67,7 +67,7 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8
             case SKILL_EFFECT_BATTLE_CRIT: bu->battleCritRate  += sk.value; break;
             case SKILL_EFFECT_HP_PCT:      /* deferred: no battleMaxHp field */ break;
             case SKILL_EFFECT_BREAK:       /* stub: wired in #16 */ break;
-            case SKILL_EFFECT_DUAL_STRIKE: /* stub: chain-attack issue */ break;
+            case SKILL_EFFECT_DIVINE_SPEED: /* deferred to follow-up hook */ break;
             case SKILL_EFFECT_PERCEPTIVE:
             case SKILL_EFFECT_PERCEPTIVE_PLUS:
                 if (isInitiator)
@@ -96,12 +96,12 @@ void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool
     {
         struct SkillUnlock u = gEngageSkillUnlocks[unit->ringEmblemId];
         struct SkillDef sk = gSkillDefs[u.skillId];
-        unit->uEngageSkillUsed = 1;
         switch (sk.kind) {
-        case SKILL_EFFECT_BATTLE_ATK:  bu->battleAttack    += sk.value; break;
-        case SKILL_EFFECT_BATTLE_HIT:  bu->battleHitRate   += sk.value; break;
-        case SKILL_EFFECT_BATTLE_AVO:  bu->battleAvoidRate += sk.value; break;
-        case SKILL_EFFECT_BATTLE_CRIT: bu->battleCritRate  += sk.value; break;
+        case SKILL_EFFECT_BATTLE_ATK:  bu->battleAttack    += sk.value; unit->uEngageSkillUsed = 1; break;
+        case SKILL_EFFECT_BATTLE_HIT:  bu->battleHitRate   += sk.value; unit->uEngageSkillUsed = 1; break;
+        case SKILL_EFFECT_BATTLE_AVO:  bu->battleAvoidRate += sk.value; unit->uEngageSkillUsed = 1; break;
+        case SKILL_EFFECT_BATTLE_CRIT: bu->battleCritRate  += sk.value; unit->uEngageSkillUsed = 1; break;
+        case SKILL_EFFECT_DIVINE_SPEED: /* deferred to follow-up hook */ break;
         default: break;
         }
     }
@@ -115,4 +115,13 @@ bool8 HasInheritedSkill(struct Unit *unit, u8 skillId)
             return 1;
     }
     return 0;
+}
+
+bool8 Engage_ShouldForceDivineSpeed(struct Unit *unit)
+{
+    if (unit->ringEmblemId == NO_RING) return 0;
+    if (unit->uEngageSkillUsed) return 0;
+    struct SkillUnlock u = gEngageSkillUnlocks[unit->ringEmblemId];
+    struct SkillDef sk = gSkillDefs[u.skillId];
+    return (sk.kind == SKILL_EFFECT_DIVINE_SPEED);
 }
