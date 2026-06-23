@@ -148,7 +148,7 @@ static void test_marth_engage_skill_is_dual_strike(void)
                            gSkillDefs[gEngageSkillUnlocks[0].skillId].kind);
 }
 
-// Resolver tests (#85-A) — exercise ApplySyncSkillsToBattleUnit,
+// Resolver tests — exercise ApplySyncSkillsToBattleUnit,
 // ApplyEngageSkillToBattleUnit, and HasInheritedSkill.
 
 #define TEST_NO_RING 0xFF
@@ -179,48 +179,216 @@ static void test_resolver_bond0_noop(void)
     TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
 }
 
-// Marth's wiki skills at Lv 15 (Perceptive, Break Defenses, Unyielding,
-// Unyielding+, Perceptive+, Unyielding++) have no resolver wiring yet —
-// they're stub-cased in ApplySyncSkillsToBattleUnit. The test verifies the
-// resolver runs without crashing and produces no battle-stat deltas for
-// Marth at Lv 15 under the current wiki data.
+// At bond 15, full HP, no adjacency, no sword: Unyielding and Perceptive gate
+// checks prevent stat changes; only Avoid Bonus (inherit Lv 2) and Break
+// Defenses flag fire.
 static void test_resolver_bond15_marth_cumulative(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
     u.ringEmblemId = 0; // Marth
     u.ringBondLevel = 15;
+    u.maxHP = 30;
+    u.curHP = 30; // full HP — Unyielding gate fails
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // non-sword — Sword Agility gate fails
     ApplySyncSkillsToBattleUnit(&bu, &u);
-    // No BATTLE_* skill wiring applies to Marth's wiki skills today.
-    TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleAttack);    // Unyielding: full HP
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleHitRate);   // Perceptive: no adjacency
+    TEST_ASSERT_EQUAL_INT(10, bu.battleAvoidRate); // Avoid Bonus (inherit Lv 2)
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleSpeed);     // Sword Agility: non-sword
+    TEST_ASSERT_EQUAL_INT(1,  gEngageBreakDefenses); // Break Defenses (bond 3)
 }
 
+// At bond 3: Break Defenses sets the flag; Avoid Bonus (inherit Lv 2)
+// adds to battleAvoidRate. No other effects fire without HP/adjacency/sword.
 static void test_resolver_break_skill_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
     u.ringEmblemId = 0; // Marth
-    u.ringBondLevel = 3; // unlocks Marth t3 BREAK only
+    u.ringBondLevel = 3; // unlocks Perceptive(1), Break Defenses(3) sync;
+                         // Perceptive(1), Avoid+10(2) inherit
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // non-sword
     ApplySyncSkillsToBattleUnit(&bu, &u);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
-    TEST_ASSERT_EQUAL_INT(0, bu.battleCritRate);
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleAttack);    // Unyielding: not unlocked yet
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleHitRate);   // Perceptive: no adjacency
+    TEST_ASSERT_EQUAL_INT(10, bu.battleAvoidRate); // Avoid Bonus (inherit Lv 2)
+    TEST_ASSERT_EQUAL_INT(0,  bu.battleCritRate);
+    TEST_ASSERT_EQUAL_INT(1,  gEngageBreakDefenses);
 }
 
 static void test_resolver_hppct_deferred_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
     u.ringEmblemId = 0;
-    u.ringBondLevel = 1; // unlocks Marth t1 HP_PCT only
+    u.ringBondLevel = 1; // Perceptive at bond 1 (sync + inherit); no other skills
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // non-sword
     ApplySyncSkillsToBattleUnit(&bu, &u);
-    // HP_PCT has no battle target (no battleMaxHp field); no stat changes.
+    // Perceptive requires adjacency (NULL) — no stat changes.
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
 }
+
+// --- Unyielding family tests ---
+
+// Bond 7 unlocks Unyielding (sync + inherit). HP <= 50% triggers +5 atk.
+static void test_resolver_unyielding_applies_when_low_hp(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0; // Marth
+    u.ringBondLevel = 7;
+    u.maxHP = 30;
+    u.curHP = 10; // 10*2=20 <= 30 — gate passes
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // non-sword
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(5, bu.battleAttack);
+}
+
+// Full HP: Unyielding gate fails, battleAttack stays 0.
+static void test_resolver_unyielding_noop_when_full_hp(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 7;
+    u.maxHP = 30;
+    u.curHP = 30; // 30*2=60 > 30 — gate fails
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1;
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
+}
+
+// Bond 12 adds Unyielding+. Highest tier wins: +7 only, not +5+7=12.
+static void test_resolver_unyielding_plus_suppresses_base(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 12;
+    u.maxHP = 30;
+    u.curHP = 10;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1;
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(7, bu.battleAttack); // Unyielding+ only, not 5+7=12
+}
+
+// --- Sword Agility tests ---
+
+// Bond 12 unlocks Sword Agility tier 3 (inherit). Sword weapon: +3 spd.
+static void test_resolver_sword_agility_applies_with_sword(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 12;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = ENGAGE_ITYPE_SWORD; // sword
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(3, bu.battleSpeed);
+}
+
+// Non-sword weapon: Sword Agility gate fails, battleSpeed stays 0.
+static void test_resolver_sword_agility_noop_without_sword(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 12;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // lance — not a sword
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleSpeed);
+}
+
+// --- Avoid Bonus tests ---
+
+// Bond 2 unlocks Avoid +10 (inherit). Applied unconditionally.
+static void test_resolver_avoid_bonus_applies(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 2;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1;
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(10, bu.battleAvoidRate);
+}
+
+// --- Break Defenses flag tests ---
+
+// Bond 3 unlocks Break Defenses (sync). Flag must be set.
+static void test_resolver_break_defenses_sets_flag(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 3;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(1, gEngageBreakDefenses);
+}
+
+// Bond 2 does not reach Break Defenses (bond 3). Flag must stay 0.
+static void test_resolver_break_defenses_noop_below_bond3(void)
+{
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 2;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(0, gEngageBreakDefenses);
+}
+
+// --- Perceptive tests ---
+
+static bool8 stub_adjacent_always(struct Unit *u) { (void)u; return 1; }
+static bool8 stub_not_adjacent(struct Unit *u) { (void)u; return 0; }
+
+// Bond 1 unlocks Perceptive. With an adjacent ally: +15 hit and +15 avoid.
+static void test_resolver_perceptive_applies_when_adjacent_to_ally(void)
+{
+    Engage_AdjacentAllyCheck = stub_adjacent_always;
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 1;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1;
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(15, bu.battleHitRate);
+    TEST_ASSERT_EQUAL_INT(15, bu.battleAvoidRate);
+    Engage_AdjacentAllyCheck = NULL;
+}
+
+// No adjacent ally: Perceptive gate fails, no hit/avoid bonus.
+static void test_resolver_perceptive_noop_when_not_adjacent(void)
+{
+    Engage_AdjacentAllyCheck = stub_not_adjacent;
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 1;
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1;
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
+    Engage_AdjacentAllyCheck = NULL;
+}
+
+// Bond 16 unlocks Perceptive+. Highest tier wins: +20 only, not 15+20=35.
+static void test_resolver_perceptive_plus_suppresses_base(void)
+{
+    Engage_AdjacentAllyCheck = stub_adjacent_always;
+    struct Unit u; memset(&u, 0, sizeof(u));
+    u.ringEmblemId = 0;
+    u.ringBondLevel = 16;
+    u.maxHP = 30;
+    u.curHP = 30; // full HP — Unyielding gate fails
+    struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
+    bu.weaponType = 1; // non-sword
+    ApplySyncSkillsToBattleUnit(&bu, &u);
+    TEST_ASSERT_EQUAL_INT(20, bu.battleHitRate);   // Perceptive+ only, not 15+20=35
+    TEST_ASSERT_EQUAL_INT(30, bu.battleAvoidRate); // Perceptive+ (20) + Avoid Bonus (10)
+    Engage_AdjacentAllyCheck = NULL;
+}
+
+// --- Engage skill and HasInheritedSkill tests ---
 
 static void test_engage_skill_idempotent(void)
 {
@@ -240,7 +408,7 @@ static void test_engage_skill_idempotent(void)
 static void test_has_inherited_skill_stub(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    // gInheritSkillUnlocks is empty (#85-A), so every skillId returns false.
+    // skillId 0 and 7 are not in gInheritSkillUnlocks.
     TEST_ASSERT_EQUAL_INT(0, HasInheritedSkill(&u, 0));
     TEST_ASSERT_EQUAL_INT(0, HasInheritedSkill(&u, 7));
 }
@@ -268,6 +436,17 @@ int main(void)
     RUN_TEST(test_resolver_bond15_marth_cumulative);
     RUN_TEST(test_resolver_break_skill_noop);
     RUN_TEST(test_resolver_hppct_deferred_noop);
+    RUN_TEST(test_resolver_unyielding_applies_when_low_hp);
+    RUN_TEST(test_resolver_unyielding_noop_when_full_hp);
+    RUN_TEST(test_resolver_unyielding_plus_suppresses_base);
+    RUN_TEST(test_resolver_sword_agility_applies_with_sword);
+    RUN_TEST(test_resolver_sword_agility_noop_without_sword);
+    RUN_TEST(test_resolver_avoid_bonus_applies);
+    RUN_TEST(test_resolver_break_defenses_sets_flag);
+    RUN_TEST(test_resolver_break_defenses_noop_below_bond3);
+    RUN_TEST(test_resolver_perceptive_applies_when_adjacent_to_ally);
+    RUN_TEST(test_resolver_perceptive_noop_when_not_adjacent);
+    RUN_TEST(test_resolver_perceptive_plus_suppresses_base);
     RUN_TEST(test_engage_skill_idempotent);
     RUN_TEST(test_has_inherited_skill_stub);
     return UNITY_END();

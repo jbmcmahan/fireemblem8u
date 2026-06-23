@@ -79,12 +79,12 @@ CONST_DATA struct SkillDef gSkillDefs[SKILL_DEF_COUNT] =
     [5] = { .kind = SKILL_EFFECT_BATTLE_CRIT,      .value =  5 },
     [6] = { .kind = SKILL_EFFECT_NONE,             .value =  0 }, // was BREAK placeholder
     [7] = { .kind = SKILL_EFFECT_DUAL_STRIKE,      .value =  0 }, // Marth's engage skill from #78
-    [8] = { .kind = SKILL_EFFECT_PERCEPTIVE,       .value =  0 },
-    [9] = { .kind = SKILL_EFFECT_PERCEPTIVE_PLUS,  .value =  0 },
-    [10] = { .kind = SKILL_EFFECT_BREAK_DEFENSES,  .value =  0 },
-    [11] = { .kind = SKILL_EFFECT_UNYIELDING,      .value =  0 },
-    [12] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS, .value =  0 },
-    [13] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS_PLUS, .value = 0 },
+    [8] = { .kind = SKILL_EFFECT_PERCEPTIVE,       .value = 15 },
+    [9] = { .kind = SKILL_EFFECT_PERCEPTIVE_PLUS,  .value = 20 },
+    [10] = { .kind = SKILL_EFFECT_BREAK_DEFENSES,  .value = 50 }, // informational; damage hook deferred
+    [11] = { .kind = SKILL_EFFECT_UNYIELDING,      .value =  5 },
+    [12] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS, .value =  7 },
+    [13] = { .kind = SKILL_EFFECT_UNYIELDING_PLUS_PLUS, .value = 10 },
     [14] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  1 }, // tier 1
     [15] = { .kind = SKILL_EFFECT_AVOID_BONUS,     .value = 10 },
     [16] = { .kind = SKILL_EFFECT_SWORD_AGILITY,   .value =  2 }, // tier 2

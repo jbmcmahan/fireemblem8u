@@ -99,7 +99,12 @@ struct Unit {
 
 struct BattleUnit {
     struct Unit unit;
-    unsigned char _pad_60[0x72 - 0x60];
+    unsigned short weapon;
+    unsigned short weaponBefore;
+    unsigned int weaponAttributes;
+    unsigned char weaponType;
+    unsigned char weaponSlotIndex;
+    unsigned char _pad_6A[0x72 - 0x60 - 10]; /* 8 bytes: canCounter..pad */
     short battleAttack;
     short battleDefense;
     short battleSpeed;
@@ -111,7 +116,17 @@ struct BattleUnit {
     short battleEffectiveCritRate;
     /* 84 */ short battleSilencerRate;
 }; /* sizeof = 0x86 */
+
+#endif /* __APPLE__ */
+
+/* Sword weapon type; bmitem.h is not host-safe so we define it locally.
+ * Value matches ITYPE_SWORD in the GBA build (0). */
+#ifndef ENGAGE_ITYPE_SWORD
+#define ENGAGE_ITYPE_SWORD 0
 #endif
+
+extern u8 gEngageBreakDefenses;
+extern bool8 (*Engage_AdjacentAllyCheck)(struct Unit *unit);
 
 void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
 void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
