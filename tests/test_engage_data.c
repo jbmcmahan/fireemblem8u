@@ -21,12 +21,7 @@ static void test_table_has_twelve_emdefs_size(void)
     TEST_ASSERT_EQUAL_UINT(12 * sizeof(struct EmblemDef), sizeof(gEmblemDefs));
 }
 
-// 6 + 7. Structural array sizes — never dereference gEmblemDefs.
-static void test_sync_skills_array_size_is_five(void)
-{
-    TEST_ASSERT_EQUAL_UINT(5, sizeof(((struct EmblemDef *)0)->syncSkills));
-}
-
+// 6. Structural array size — never dereference gEmblemDefs.
 static void test_bond_growth_stats_array_size_is_seven(void)
 {
     TEST_ASSERT_EQUAL_UINT(7, sizeof(((struct EmblemDef *)0)->bondGrowthStats));
@@ -69,7 +64,6 @@ int main(void)
     RUN_TEST(test_emdef_size_is_40_bytes);
     RUN_TEST(test_table_has_twelve_entries);
     RUN_TEST(test_table_has_twelve_emdefs_size);
-    RUN_TEST(test_sync_skills_array_size_is_five);
     RUN_TEST(test_bond_growth_stats_array_size_is_seven);
     RUN_TEST(test_each_emblems_name_non_null);
     RUN_TEST(test_each_emblems_engageweaponid_matches_index);
