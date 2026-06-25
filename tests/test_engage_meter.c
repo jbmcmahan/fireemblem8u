@@ -56,11 +56,41 @@ static void test_clamp_above_max(void)
     TEST_ASSERT_EQUAL_UINT8(ENGAGE_METER_MAX, EngageMeter_Clamp(9999));
 }
 
-static void test_is_full(void)
+
+
+static void test_slot_blue_first_last(void)
 {
-    TEST_ASSERT_FALSE(EngageMeter_IsFull(0));
-    TEST_ASSERT_FALSE(EngageMeter_IsFull(ENGAGE_METER_MAX - 1));
-    TEST_ASSERT_TRUE(EngageMeter_IsFull(ENGAGE_METER_MAX));
+    TEST_ASSERT_EQUAL_INT(0, EngageMeter_SlotForUnit(0x01));
+    TEST_ASSERT_EQUAL_INT(61, EngageMeter_SlotForUnit(0x3E));
+}
+
+static void test_slot_green_range(void)
+{
+    TEST_ASSERT_EQUAL_INT(0, EngageMeter_SlotForUnit(0x41));
+    TEST_ASSERT_EQUAL_INT(19, EngageMeter_SlotForUnit(0x54));
+}
+
+static void test_slot_red_range(void)
+{
+    TEST_ASSERT_EQUAL_INT(0, EngageMeter_SlotForUnit(0x81));
+    TEST_ASSERT_EQUAL_INT(49, EngageMeter_SlotForUnit(0xB2));
+}
+
+static void test_slot_null_index_invalid(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, EngageMeter_SlotForUnit(0x00));
+}
+
+static void test_slot_purple_invalid(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, EngageMeter_SlotForUnit(0xC1));
+}
+
+static void test_slot_out_of_range(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, EngageMeter_SlotForUnit(0x3F));
+    TEST_ASSERT_EQUAL_INT(-1, EngageMeter_SlotForUnit(0x55));
+    TEST_ASSERT_EQUAL_INT(-1, EngageMeter_SlotForUnit(0xB3));
 }
 
 static void test_config_flags_default_on(void)
@@ -88,7 +118,13 @@ int main(void)
     RUN_TEST(test_clamp_below_max);
     RUN_TEST(test_clamp_at_max);
     RUN_TEST(test_clamp_above_max);
-    RUN_TEST(test_is_full);
+
     RUN_TEST(test_config_flags_default_on);
+    RUN_TEST(test_slot_blue_first_last);
+    RUN_TEST(test_slot_green_range);
+    RUN_TEST(test_slot_red_range);
+    RUN_TEST(test_slot_null_index_invalid);
+    RUN_TEST(test_slot_purple_invalid);
+    RUN_TEST(test_slot_out_of_range);
     return UNITY_END();
 }
