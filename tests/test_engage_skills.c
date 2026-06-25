@@ -9,9 +9,9 @@ void tearDown(void) {}
 
 // 1. Pin the slim host size so accidental field additions break the build.
 //    struct SkillDef is { u8 kind; s8 value; } — host size = 2 bytes.
-static void test_skilldef_size_is_2_bytes(void)
+static void test_skilldef_size_is_4_bytes(void)
 {
-    TEST_ASSERT_EQUAL_UINT(2, sizeof(struct SkillDef));
+    TEST_ASSERT_EQUAL_UINT(4, sizeof(struct SkillDef));
 }
 
 // 2. Every effect kind is distinct so no accidental aliasing.
@@ -159,7 +159,7 @@ static void test_resolver_no_ring_noop(void)
     u.ringEmblemId = TEST_NO_RING;
     u.ringBondLevel = 15;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplySyncSkillsToBattleUnit(&bu, &u);
+    ApplySyncSkillsToBattleUnit(&bu, &u, 1);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
     TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
@@ -172,7 +172,7 @@ static void test_resolver_bond0_noop(void)
     u.ringEmblemId = 0; // Marth
     u.ringBondLevel = 0;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplySyncSkillsToBattleUnit(&bu, &u);
+    ApplySyncSkillsToBattleUnit(&bu, &u, 1);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
     TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
@@ -190,7 +190,7 @@ static void test_resolver_bond15_marth_cumulative(void)
     u.ringEmblemId = 0; // Marth
     u.ringBondLevel = 15;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplySyncSkillsToBattleUnit(&bu, &u);
+    ApplySyncSkillsToBattleUnit(&bu, &u, 1);
     // No BATTLE_* skill wiring applies to Marth's wiki skills today.
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
     TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
@@ -204,7 +204,7 @@ static void test_resolver_break_skill_noop(void)
     u.ringEmblemId = 0; // Marth
     u.ringBondLevel = 3; // unlocks Marth t3 BREAK only
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplySyncSkillsToBattleUnit(&bu, &u);
+    ApplySyncSkillsToBattleUnit(&bu, &u, 1);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
     TEST_ASSERT_EQUAL_INT(0, bu.battleHitRate);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAvoidRate);
@@ -217,7 +217,7 @@ static void test_resolver_hppct_deferred_noop(void)
     u.ringEmblemId = 0;
     u.ringBondLevel = 1; // unlocks Marth t1 HP_PCT only
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplySyncSkillsToBattleUnit(&bu, &u);
+    ApplySyncSkillsToBattleUnit(&bu, &u, 1);
     // HP_PCT has no battle target (no battleMaxHp field); no stat changes.
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
 }
@@ -228,11 +228,11 @@ static void test_engage_skill_idempotent(void)
     u.ringEmblemId = 0; // Marth
     u.ringBondLevel = 15;
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
-    ApplyEngageSkillToBattleUnit(&bu, &u);
+    ApplyEngageSkillToBattleUnit(&bu, &u, 1);
     // Marth's engage skill is DUAL_STRIKE (no stat apply). Flag set.
     TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
     // Calling again is a no-op (idempotent).
-    ApplyEngageSkillToBattleUnit(&bu, &u);
+    ApplyEngageSkillToBattleUnit(&bu, &u, 1);
     TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
 }
@@ -248,7 +248,7 @@ static void test_has_inherited_skill_stub(void)
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_skilldef_size_is_2_bytes);
+    RUN_TEST(test_skilldef_size_is_4_bytes);
     RUN_TEST(test_skill_effect_kinds_distinct);
     RUN_TEST(test_skill_def_table_size);
     RUN_TEST(test_sync_unlock_count_is_16);

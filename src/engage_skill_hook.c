@@ -14,6 +14,6 @@ void Engage_ComputeBattleUnitStats(struct BattleUnit* attacker, struct BattleUni
 {
     ComputeBattleUnitStats(attacker, defender);
     if (attacker->unit) {
-        ApplySyncSkillsToBattleUnit(attacker, &attacker->unit);
+        ApplySyncSkillsToBattleUnit(attacker, &attacker->unit, true);
     }
 }

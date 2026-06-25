@@ -97,6 +97,7 @@ struct Unit {
 
 struct BattleUnit {
     struct Unit unit;
+    u16 weapon; // added for Sword Agility tests
     unsigned char _pad_60[0x72 - 0x60];
     short battleAttack;
     short battleDefense;
@@ -111,8 +112,8 @@ struct BattleUnit {
 }; /* sizeof = 0x86 */
 #endif
 
-void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
-void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit);
+void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator);
+void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator);
 bool8 HasInheritedSkill(struct Unit *unit, u8 skillId);
 
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_SKILLS_H

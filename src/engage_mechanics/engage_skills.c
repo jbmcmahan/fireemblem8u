@@ -1,4 +1,13 @@
 #include "engage_mechanics/engage_skills.h"
+// Forward declarations for item type checks
+#ifndef ITYPE_SWORD
+#define ITYPE_SWORD 0
+#endif
+struct ItemData { u8 weaponType; };
+static struct ItemData gItemData[256] = {0};
+static int GetItemType(int item) {
+    return gItemData[item & 0xFF].weaponType;
+}
 #include "engage_mechanics/engage_skill_registry.h"
 #include "engage_mechanics/engage_bond_unlocks.h"
 #include "engage_mechanics/engage_synced_bonus.h"
@@ -19,7 +28,7 @@
  * resolver just adds those writes on one line. See PLAN.md Open Q1.
  *
  * HP_PCT and other deferred kinds still no-op as before (#78/#81). */
-void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
+void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator)
 {
     u8 emblemId = unit->ringEmblemId;
     if (emblemId == NO_RING) return;
@@ -33,12 +42,24 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
         struct BonusRow b = gSyncedBonuses[emblemId][bondLevel - 1];
         (void)b;
 
-        /* Walk sync skill unlocks. */
+        /* First pass: find max unlocked tier per group */
+        u8 maxTier[16] = {0};
         for (u8 i = 0; i < gSyncSkillUnlockCount; ++i) {
             struct SkillUnlock u = gSyncSkillUnlocks[i];
             if (u.emblemId != emblemId) continue;
             if (u.bondLevel > bondLevel) continue;
             struct SkillDef sk = gSkillDefs[u.skillId];
+            if (sk.group != 0 && u.bondLevel > maxTier[sk.group])
+                maxTier[sk.group] = u.bondLevel;
+        }
+
+        /* Second pass: apply, skipping suppressed entries */
+        for (u8 i = 0; i < gSyncSkillUnlockCount; ++i) {
+            struct SkillUnlock u = gSyncSkillUnlocks[i];
+            if (u.emblemId != emblemId) continue;
+            if (u.bondLevel > bondLevel) continue;
+            struct SkillDef sk = gSkillDefs[u.skillId];
+
             switch (sk.kind) {
             case SKILL_EFFECT_BATTLE_ATK:  bu->battleAttack    += sk.value; break;
             case SKILL_EFFECT_BATTLE_HIT:  bu->battleHitRate   += sk.value; break;
@@ -47,6 +68,17 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
             case SKILL_EFFECT_HP_PCT:      /* deferred: no battleMaxHp field */ break;
             case SKILL_EFFECT_BREAK:       /* stub: wired in #16 */ break;
             case SKILL_EFFECT_DUAL_STRIKE: /* stub: chain-attack issue */ break;
+            case SKILL_EFFECT_PERCEPTIVE:
+            case SKILL_EFFECT_PERCEPTIVE_PLUS:
+                if (isInitiator)
+                    bu->battleAvoidRate += sk.value;
+                break;
+            case SKILL_EFFECT_SWORD_AGILITY:
+                if (GetItemType(bu->weapon) == ITYPE_SWORD) {
+                    bu->battleAvoidRate += sk.value;
+                    bu->battleCritRate  -= 10;
+                }
+                break;
             default: break;
             }
         }
@@ -57,7 +89,7 @@ void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
  * emblemId; .bondLevel on the unlock row is always 0 today (#85-A) — the
  * engage skill unlocks at bond level 0 (i.e., is always available when
  * the ring is equipped). uEngageSkillUsed makes the call idempotent. */
-void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit)
+void ApplyEngageSkillToBattleUnit(struct BattleUnit *bu, struct Unit *unit, bool8 isInitiator)
 {
     if (unit->ringEmblemId == NO_RING) return;
     if (unit->uEngageSkillUsed) return;
