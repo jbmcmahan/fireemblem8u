@@ -318,6 +318,8 @@ SECTIONS
         src/bmreliance.o(.text);
         src/bmitemuse.o(.text);
         src/bmbattle.o(.text);
+        src/bmskill.o(.text);
+        src/data_skills.o(.text);
         src/bmtrade.o(.text);
         src/bmtrick.o(.text);
         src/bmusemind.o(.text);
@@ -647,6 +649,8 @@ SECTIONS
         . = ALIGN(4); src/bmudisp.o(.rodata);
         . = ALIGN(4); src/bmreliance.o(.rodata);
         . = ALIGN(4); src/bmbattle.o(.rodata);
+        . = ALIGN(4); src/bmskill.o(.rodata);
+        . = ALIGN(4); src/data_skills.o(.rodata);
         . = ALIGN(4); src/bmtrade.o(.rodata);
         . = ALIGN(4); src/bmusemind.o(.rodata);
         . = ALIGN(4); src/menu_def.o(.rodata);
@@ -890,6 +894,8 @@ SECTIONS
         . = ALIGN(4); src/bmreliance.o(.data);
         . = ALIGN(4); src/bmitemuse.o(.data);
         . = ALIGN(4); src/bmbattle.o(.data);
+        . = ALIGN(4); src/bmskill.o(.data);
+        . = ALIGN(4); src/data_skills.o(.data);
         . = ALIGN(4); src/bmtrade.o(.data);
         . = ALIGN(4); src/bmtrick.o(.data);
         . = ALIGN(4); src/bmusemind.o(.data);
