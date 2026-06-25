@@ -249,7 +249,6 @@ int BattleCheckBraveEffect(struct BattleUnit* bu);
 
 s8 BattleCheckTriangleAttack(struct BattleUnit* attacker, struct BattleUnit* defender);
 void BattleUpdateBattleStats(struct BattleUnit* attacker, struct BattleUnit* defender);
-void BattleCheckSureShot(struct BattleUnit* attacker);
 void BattleCheckPierce(struct BattleUnit* attacker, struct BattleUnit* defender);
 void BattleCheckGreatShield(struct BattleUnit* attacker, struct BattleUnit* defender);
 s8 BattleCheckSilencer(struct BattleUnit* attacker, struct BattleUnit* defender);

@@ -15,6 +15,7 @@
 #include "mu.h"
 #include "bmarch.h"
 #include "bmarena.h"
+#include "bmskill.h"
 #include "bmsave.h"
 #include "ekrbattle.h"
 #include "bmbattle.h"
@@ -884,40 +885,6 @@ void BattleUpdateBattleStats(struct BattleUnit* attacker, struct BattleUnit* def
     gBattleStats.silencerRate = attacker->battleSilencerRate;
 }
 
-void BattleCheckSureShot(struct BattleUnit* attacker) {
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)
-        return;
-
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_PIERCE)
-        return;
-
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_GREATSHLD)
-        return;
-
-    switch (attacker->unit.pClassData->number) {
-
-    case CLASS_SNIPER:
-    case CLASS_SNIPER_F:
-        switch (GetItemIndex(attacker->weapon)) {
-
-        case ITEM_BALLISTA_REGULAR:
-        case ITEM_BALLISTA_LONG:
-        case ITEM_BALLISTA_KILLER:
-            break;
-
-        default:
-            if (BattleRoll1RN(attacker->unit.level, FALSE) == TRUE)
-                gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_SURESHOT;
-
-            break;
-
-        } // switch (GetItemIndex(attacker->weapon))
-
-        break;
-
-    } // switch (attacker->unit.pClassData->number)
-}
-
 void BattleCheckPierce(struct BattleUnit* attacker, struct BattleUnit* defender) {
     if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)
         return;
@@ -999,10 +966,15 @@ void BattleCheckPetrify(struct BattleUnit* attacker, struct BattleUnit* defender
 
 void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit* defender) {
     short attack, defense;
+    struct SkillBattleContext ctx = {
+        .attacker = attacker,
+        .defender = defender,
+        .hit = gBattleHitIterator,
+    };
 
     gBattleStats.damage = 0;
 
-    BattleCheckSureShot(attacker);
+    SkillDispatchBattle(SKILL_HOOK_PRE_HIT, &ctx);
 
     if (!(gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)) {
         if (!BattleRoll2RN(gBattleStats.hitRate, TRUE)) {
