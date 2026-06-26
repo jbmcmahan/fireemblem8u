@@ -53,6 +53,9 @@ endif
 
 CC1FLAGS := -mthumb-interwork -Wimplicit -Wparentheses -Werror -O2 -fhex-asm -ffix-debug-line -g
 CPPFLAGS := -I tools/agbcc/include -iquote include -iquote . -nostdinc -undef
+ifdef DEBUG
+	CPPFLAGS += -DDEBUG
+endif
 ASFLAGS  := -mcpu=arm7tdmi -mthumb-interwork -I include
 
 #### Files ####
