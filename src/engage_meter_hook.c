@@ -11,8 +11,10 @@ IWRAM_DATA u8 gEngageMeterGreen[20];
 
 u8 GetEngageMeter(struct Unit* unit)
 {
+    s8 slot;
+
     if (!unit) return 0;
-    s8 slot = EngageMeter_SlotForUnit(unit->index);
+    slot = EngageMeter_SlotForUnit(unit->index);
     if (slot < 0) return 0;
     switch (unit->index & 0xC0) {
         case 0x00: return gEngageMeterBlue[slot];
@@ -32,8 +34,10 @@ u8 AddEngageMeter(struct Unit* unit, u8 amount)
 
 void SetEngageMeter(struct Unit* unit, u8 value)
 {
+    s8 slot;
+
     if (!unit) return;
-    s8 slot = EngageMeter_SlotForUnit(unit->index);
+    slot = EngageMeter_SlotForUnit(unit->index);
     if (slot < 0) return;
     value = EngageMeter_Clamp(value);
     switch (unit->index & 0xC0) {

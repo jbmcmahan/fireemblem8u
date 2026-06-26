@@ -238,6 +238,7 @@ SECTIONS
     ALIGN(4)
     {
         INCLUDE "sym_iwram.txt"
+        . = ALIGN(4); src/engage_meter_hook.o(iwram_data);
     }
 
     ROM __text_start :
@@ -286,6 +287,8 @@ SECTIONS
         src/bm.o(.text);
         src/bmitem.o(.text);
         src/bmunit.o(.text);
+        src/engage_meter_hook.o(.text);
+        src/engage_mechanics/engage_meter.o(.text);
         src/bmmap.o(.text);
         src/bmidoten.o(.text);
         src/bmdebug.o(.text);

@@ -12,8 +12,6 @@ u8 EngageMeter_Clamp(u16 value);
 // TRUE iff value has reached the cap.
 bool8 EngageMeter_IsFull(u8 value);
 
-#endif // GUARD_ENGAGE_MECHANICS_ENGAGE_METER_H
-
 /* Forward declaration for unit-aware wrappers (GBA-only) */
 struct Unit;
 
@@ -31,3 +29,5 @@ void SetEngageMeter(struct Unit* unit, u8 value);
 void ResetEngageMeter(struct Unit* unit);
 /* Resets all engage meters (per chapter) */
 void ResetAllEngageMeters(void);
+
+#endif // GUARD_ENGAGE_MECHANICS_ENGAGE_METER_H
