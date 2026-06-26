@@ -1,0 +1,9 @@
+#ifndef GUARD_CONSTANTS_SKILLS_H
+#define GUARD_CONSTANTS_SKILLS_H
+
+enum {
+    SKILL_NONE = 0,
+    SKILL_SURE_SHOT = 1,
+};
+
+#endif // GUARD_CONSTANTS_SKILLS_H
