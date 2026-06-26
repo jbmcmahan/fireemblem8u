@@ -3,13 +3,10 @@
 
 // CONST_DATA places gEmblemDefs in the ROM's .data section on the GBA build,
 // matching the ldscript free-space region for engage_data.o. The host test
-// build links engage_data.c into a Mach-O binary on macOS, where bare ".data"
-// section attributes are rejected (clang errors with "mach-o section
-// specifier requires a segment and section separated by a comma"). Override
-// the attribute on __APPLE__ so the test binary compiles; on Linux/other
-// ELFs the GCC section attribute is accepted.
+// build does not need section placement, and some host targets reject bare
+// ".data" section attributes. Keep the attribute only for non-test builds.
 #if !defined(CONST_DATA)
-#  if defined(__APPLE__)
+#  if defined(HOST_TEST)
 #    define CONST_DATA
 #  elif defined(__GNUC__)
 #    define CONST_DATA __attribute__((section(".data")))

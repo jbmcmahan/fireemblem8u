@@ -6,15 +6,13 @@
 // Provide a complete struct Unit so the ring-slot API surface below
 // can take a `struct Unit *` parameter and consumers (tests, the
 // umbrella re-export) can declare `struct Unit` locals without an
-// extra #include. On the GBA build and the Linux host build, pull in
-// the authoritative definition from bmunit.h. On macOS, bmunit.h is
-// not host-linkable (it transitively includes variables.h, which uses
-// Mach-O-incompatible section attributes); fall back to the canonical
-// host-side mirror in tests/test_support/unit_mirror.h.
-#if !defined(__APPLE__)
-#include "bmunit.h"
-#else
+// extra #include. The host test build uses the canonical mirror because
+// bmunit.h transitively includes ROM globals and section attributes that
+// are not host-portable. The GBA build uses the authoritative definition.
+#if defined(HOST_TEST)
 #include "test_support/unit_mirror.h"
+#else
+#include "bmunit.h"
 #endif
 
 #define ENGAGE_RING_ITEM_COUNT 12

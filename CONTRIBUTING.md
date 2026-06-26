@@ -388,11 +388,11 @@ the ROM bytes auditable.
 ## `CONST_DATA` on global data
 
 `CONST_DATA` is defined **locally** in each `.c` file that needs it. It
-is not in `prelude.h`. Reason: the host test build links `.c` files into
-a Mach-O binary on macOS, where `__attribute__((section(".data")))` on
-an *extern* is rejected; it is accepted on a *definition*. The linker
-resolves by symbol name regardless of section, so the attribute only
-needs to live on the definition site.
+is not in `prelude.h`. Reason: the host test build does not need ROM
+section placement, and host compilers/targets may reject or reinterpret
+GBA-style section attributes. The linker resolves by symbol name
+regardless of section, so the attribute only needs to live on the GBA
+definition site.
 
 Put the attribute on the **definition**, not the extern declaration in
 the header. Mirroring `extern CONST_DATA struct Foo gFoo;` from
@@ -404,7 +404,7 @@ table (verbatim from `src/engage_mechanics/engage_data.c:10-18`):
 
 ```c
 #if !defined(CONST_DATA)
-#  if defined(__APPLE__)
+#  if defined(HOST_TEST)
 #    define CONST_DATA
 #  elif defined(__GNUC__)
 #    define CONST_DATA __attribute__((section(".data")))
@@ -451,7 +451,7 @@ includes it for exactly that reason.
 
 All state must arrive via function arguments or struct fields. The
 `engage_meter` module is the reference: it takes `u8`/`u16` in, returns
-`u8` out, and is fully testable on macOS without a GBA toolchain
+`u8` out, and is fully host-testable without a GBA toolchain
 (see `tests/test_engage_meter.c`).
 
 ## Host-side testing
@@ -476,8 +476,8 @@ range" rather than a clear mismatch. The exact host `sizeof` depends on
 which fields the mirror carries at the time; the principle (mocks will
 drift) does not.
 
-The active module's header re-exports the macOS-host mirror under
-`#if !defined(__APPLE__)` and pulls in the real `bmbattle.h` otherwise.
+The active module's header re-exports a host-test mirror under
+`#if defined(HOST_TEST)` and pulls in the real GBA header otherwise.
 By construction, the resolver and the test see the same struct. No
 cast, no stub to keep in lockstep.
 
