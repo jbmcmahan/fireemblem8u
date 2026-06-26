@@ -29,9 +29,12 @@ bool8 EngageMeter_IsFull(u8 value)
    Returns -1 for invalid indices (purple faction, out of range, zero index). */
 s8 EngageMeter_SlotForUnit(u8 index)
 {
+    u8 faction;
+    s8 slot;
+
     if (index == 0) return -1;
-    u8 faction = index & 0xC0;
-    s8 slot = (index & 0x3F) - 1; // zero‑based slot within faction table
+    faction = index & 0xC0;
+    slot = (index & 0x3F) - 1; // zero-based slot within faction table
     switch (faction) {
         case METER_FACTION_BLUE:
             if (slot >= 62) return -1;

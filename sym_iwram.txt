@@ -169,11 +169,4 @@
 . = 0x0067A0; ReadSramFast = .;
 . = 0x0067A4; VerifySramFast = .;
 
-. = 0x67A8; gEngageMeterBlue = .;
-. = 0x67E6; gEngageMeterRed = .;
-. = 0x6818; gEngageMeterGreen = .;
-. = 0x682C; gEngageMeterBlue = .;
-. = 0x67E6; gEngageMeterRed = .;
-. = 0x6818; gEngageMeterGreen = .;
-. = 0x682C;
 . = ALIGN(4); *libc.a:sbrkr.o(COMMON);
