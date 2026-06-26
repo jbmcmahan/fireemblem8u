@@ -167,8 +167,8 @@ struct Unit
     /* 39 */ s8 supportBits;
 
     /* pad */
-    /* 3A */ u8 _u3A;
-    /* 3B */ u8 _u3B;
+    /* 3A */ u8 ringSlot;        // 0..4 = index of the equipped ring inside unit->items[]; 0xFF = no ring.
+    /* 3B */ u8 ringEngageState; // 0 = idle; 1..N = turns remaining in Engage mode.
 
     /* 3C */ struct SMSHandle * pMapSpriteHandle;
 

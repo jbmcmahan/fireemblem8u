@@ -511,6 +511,17 @@ references `bmbattle.c` globals and must not compile on the host.
 A module that is pure-logic and is intended to be host-tested goes in
 `src/engage_mechanics/` and is auto-linked.
 
+# ROM hash (`checksum.sha1`)
+
+The committed `fireemblem8.gba` hash in `checksum.sha1` is load-bearing **only when assembly is being rewritten to C**. Adding or relocating C-defined data in unused ROM regions (e.g., the `FILL(0xFF)` tail past the last symbol) is allowed to change the hash; the engine never reads the new bytes until a subsequent PR wires them in.
+
+Practical rules:
+
+- **Rewriting assembly to C** → SHA1 must remain identical. Verify the new ROM matches `baserom.gba` byte-for-byte and resolve any drift before merging.
+- **Pure-data additions** (new `CONST_DATA` tables, new rodata strings, new entries in an existing table that lives in unused space) → expect a SHA1 delta; record the new hash in the PR description and open a follow-up issue to update `checksum.sha1` before any release.
+
+If you are unsure which bucket your change falls into, default to **SHA1 must match** and ask in the PR.
+
 
 # Resources Collection
 

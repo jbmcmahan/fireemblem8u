@@ -239,6 +239,20 @@ enum {
     ITEM_UNK_CD            = 0xCD,
 
     // Engage: ring items land at 0xCE..0xD9 (see issue #10 / PR #41).
+    // Engage: ring items — one per Emblem, indices match gRingItemDefs[12]
+    ITEM_RING_MARTH        = 0xCE,
+    ITEM_RING_CELICA       = 0xCF,
+    ITEM_RING_SIGURD       = 0xD0,
+    ITEM_RING_LEIF         = 0xD1,
+    ITEM_RING_ROY          = 0xD2,
+    ITEM_RING_LYN          = 0xD3,
+    ITEM_RING_EIRIKA       = 0xD4,
+    ITEM_RING_IKE          = 0xD5,
+    ITEM_RING_MICAIAH      = 0xD6,
+    ITEM_RING_LUCINA       = 0xD7,
+    ITEM_RING_CORRIN       = 0xD8,
+    ITEM_RING_BYLETH       = 0xD9,
+
     // Engage: per-Emblem engage-weapon item IDs — indices match gEmblemDefs[12]
     // in src/engage_mechanics/engage_data.c. Reserved range 0xDA..0xE5 leaves
     // 0xE6..0xFF as headroom for future Emblems or Engage data.
