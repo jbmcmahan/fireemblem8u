@@ -11,8 +11,8 @@
  * ring-slot API touches, at the same byte offsets as the GBA struct, so
  * host test code and the engage_mechanics TUs see one consistent layout.
  *
- * Consumers include this ONLY under #if defined(__APPLE__); on every
- * other platform they include the real bmunit.h.
+ * Consumers include this ONLY under #if defined(HOST_TEST); the GBA build
+ * includes the real bmunit.h.
  */
 enum { UNIT_ITEM_COUNT = 5 };
 struct Unit

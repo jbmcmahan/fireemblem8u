@@ -33,8 +33,7 @@ struct EmblemDef
 
 /* No CONST_DATA on this extern — section attr lives on the definition in
  * engage_data.c (PR #30). Mirroring variables.h's `extern CONST_DATA` would
- * pull in prelude.h's `__attribute__((section(".data")))` and break the
- * Mach-O host test build (GCC rejects section attrs on Mach-O externs). */
+ * pull in prelude.h's GBA section attribute and break host test builds. */
 extern struct EmblemDef gEmblemDefs[EMBLEM_DEF_COUNT];
 
 // Item kind for Engage rings. Source-of-truth is the ITYPE_* enum in
@@ -50,7 +49,7 @@ struct RingItemDef
 };
 
 /* No CONST_DATA on this extern — section attr lives on the definition in
- * engage_data.c. Same Mach-O host-test rationale as gEmblemDefs (PR #30). */
+ * engage_data.c. Same host-test rationale as gEmblemDefs (PR #30). */
 extern struct RingItemDef gRingItemDefs[12];
 
 #endif // GUARD_ENGAGE_MECHANICS_ENGAGE_DATA_H
