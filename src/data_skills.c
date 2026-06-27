@@ -163,13 +163,18 @@ static int HasSkillInList(const u8 *skills, u8 skillId)
     return FALSE;
 }
 
-static int UnitHasSkill(const struct Unit* unit, u8 skillId)
+int UnitHasSkill(const struct Unit* unit, u8 skillId)
 {
     if (HasSkillInList(GetClassSkillList(unit->pClassData->number), skillId))
         return TRUE;
     if (HasSkillInList(GetCharSkillList(unit->pCharacterData->number), skillId))
         return TRUE;
     return FALSE;
+}
+
+int UnitHealStaffRangeBonus(const struct Unit *unit)
+{
+    return UnitHasSkill(unit, SKILL_BIG_PERSONALITY) ? 1 : 0;
 }
 
 static void SkillStatBonusAlabasterDuty(struct SkillBattleContext* ctx,

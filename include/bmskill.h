@@ -53,4 +53,7 @@ typedef void (*StatBonusFn)(struct SkillBattleContext *ctx,
 void SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
                              const struct Unit *unit);
 
+/** Does *unit own *skillId* (class or character tables)? */
+s8 UnitHasSkill(const struct Unit *unit, u8 skillId);
+
 #endif // GUARD_BMSKILL_H

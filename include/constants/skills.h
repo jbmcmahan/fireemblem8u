@@ -2,9 +2,9 @@
 #define GUARD_CONSTANTS_SKILLS_H
 
 /* Maximum character skill ID — keep in sync with gSkillData[] size.
- * SKILL_ASPIRING_HERO = 4 means this must be at least 5.
+ * SKILL_BIG_PERSONALITY = 5 means this must be at least 6.
  */
-enum { SKILL_MAX = 5 };
+enum { SKILL_MAX = 6 };
 
 enum {
     SKILL_NONE            = 0,
@@ -12,6 +12,7 @@ enum {
     SKILL_ADMIRATION      = 2,
     SKILL_ALABASTER_DUTY  = 3,
     SKILL_ASPIRING_HERO   = 4,
+    SKILL_BIG_PERSONALITY = 5,
 };
 
 #endif // GUARD_CONSTANTS_SKILLS_H
