@@ -11,6 +11,7 @@
 
 static void SkillSureShotBattleHook(struct SkillBattleContext* ctx);
 static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx);
+static void SkillAspiringHeroBattleHook(struct SkillBattleContext* ctx);
 
 /* ---- Skill lists (SKILL_NONE-terminated) ---- */
 
@@ -31,6 +32,11 @@ CONST_DATA struct SkillData gSkillData[] = {
         .id = SKILL_ADMIRATION,
         .hook = SKILL_HOOK_AFTER_DMG,
         .battleHook = SkillAdmirationBattleHook,
+    },
+    [SKILL_ASPIRING_HERO] = {
+        .id = SKILL_ASPIRING_HERO,
+        .hook = SKILL_HOOK_PRE_HIT,
+        .battleHook = SkillAspiringHeroBattleHook,
     },
 };
 
@@ -276,4 +282,64 @@ static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx) {
 
     if (femaleAllyCount >= 2 && gBattleStats.damage >= 2)
         gBattleStats.damage -= 2;
+}
+
+static int CombatIsIsolated(const struct BattleUnit* attacker,
+                            const struct BattleUnit* defender)
+{
+    const int dx[4] = { -1, +1,  0,  0 };
+    const int dy[4] = {  0,  0, -1, +1 };
+    int ax = attacker->unit.xPos, ay = attacker->unit.yPos;
+    int bx = defender->unit.xPos, by = defender->unit.yPos;
+    int dir;
+
+    /* Scan attacker's 4 neighbors — reject if any unit besides defender */
+    for (dir = 0; dir < 4; dir++) {
+        int nx = ax + dx[dir], ny = ay + dy[dir];
+        int uId;
+        if (nx < 0 || ny < 0) continue;
+        uId = gBmMapUnit[ny][nx];
+        if (!uId) continue;
+        if (nx == bx && ny == by) continue;
+        return FALSE;
+    }
+
+    /* Scan defender's 4 neighbors — reject if any unit besides attacker */
+    for (dir = 0; dir < 4; dir++) {
+        int nx = bx + dx[dir], ny = by + dy[dir];
+        int uId;
+        if (nx < 0 || ny < 0) continue;
+        uId = gBmMapUnit[ny][nx];
+        if (!uId) continue;
+        if (nx == ax && ny == ay) continue;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/* Aspiring Hero — if no other unit is adjacent to either combatant,
+ * the skill owner gets Hit +20 and Avo -10.
+ *
+ * Fires as PRE_HIT for the current attacker.  Both sides are checked
+ * in the same call so the effect applies on counter-strikes too:
+ *   - Owner attacking → hitRate += 20
+ *   - Owner defending → hitRate += 10 (= defender's Avo -10) */
+static void SkillAspiringHeroBattleHook(struct SkillBattleContext* ctx)
+{
+    if (gBattleStats.config & BATTLE_CONFIG_ARENA)
+        return;
+
+    if (!UnitHasSkill(&ctx->attacker->unit, SKILL_ASPIRING_HERO)
+     && !UnitHasSkill(&ctx->defender->unit, SKILL_ASPIRING_HERO))
+        return;
+
+    if (!CombatIsIsolated(ctx->attacker, ctx->defender))
+        return;
+
+    if (UnitHasSkill(&ctx->attacker->unit, SKILL_ASPIRING_HERO))
+        gBattleStats.hitRate += 20;
+
+    if (UnitHasSkill(&ctx->defender->unit, SKILL_ASPIRING_HERO))
+        gBattleStats.hitRate += 10;
 }
