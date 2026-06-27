@@ -19,11 +19,6 @@ CONST_DATA u8 SkillList_Sniper[] = {
     SKILL_NONE,
 };
 
-CONST_DATA u8 CharSkillList_Louis[] = {
-    SKILL_ADMIRATION,
-    SKILL_NONE,
-};
-
 /* ---- Skill data table ---- */
 
 CONST_DATA struct SkillData gSkillData[] = {
@@ -40,11 +35,6 @@ CONST_DATA struct SkillData gSkillData[] = {
 };
 
 /* ---- Unit skill lookup tables ---- */
-/*
- * Each table maps a unit identifier to a skill list.  New tables can be
- * added for any ownership model (character, class, learned, equipment,
- * etc.).  The dispatcher only sees the resolved skill list.
- */
 
 CONST_DATA struct UnitSkillEnt gClassSkillTable[] = {
     { CLASS_SNIPER,   SkillList_Sniper },
@@ -53,7 +43,6 @@ CONST_DATA struct UnitSkillEnt gClassSkillTable[] = {
 };
 
 CONST_DATA struct UnitSkillEnt gCharSkillTable[] = {
-    { CHARACTER_LOUIS, CharSkillList_Louis },
     { 0, NULL },
 };
 
@@ -75,6 +64,146 @@ const u8* GetCharSkillList(u8 charId)
             return gCharSkillTable[i].skills;
     }
     return NULL;
+}
+
+/* ---- Stat bonus hooks (fire for every unit) ---- */
+
+/* 4-way adjacency scan (O(1) — four tile reads) */
+static int UnitHasAdjacentDivineDragon(int faction, int x, int y)
+{
+    static const int dx[] = { -1, +1,  0,  0 };
+    static const int dy[] = {  0,  0, -1, +1 };
+    int dir;
+
+    for (dir = 0; dir < 4; dir++) {
+        int nx = x + dx[dir];
+        int ny = y + dy[dir];
+        int uId;
+        struct Unit *unit;
+
+        if (nx < 0 || ny < 0)
+            continue;
+
+        uId = gBmMapUnit[ny][nx];
+        if (!uId)
+            continue;
+
+        if ((uId & 0xC0) != faction)
+            continue;
+
+        unit = GetUnit(uId);
+        if (UNIT_CATTRIBUTES(unit) & CA_DIVINE_DRAGON)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static int UnitHasAdjacentSkill(int faction, int x, int y, u8 skillId)
+{
+    static const int dx[] = { -1, +1,  0,  0 };
+    static const int dy[] = {  0,  0, -1, +1 };
+    int dir;
+
+    for (dir = 0; dir < 4; dir++) {
+        int nx = x + dx[dir];
+        int ny = y + dy[dir];
+        int uId;
+        struct Unit *unit;
+        const u8 *skills;
+        int j;
+
+        if (nx < 0 || ny < 0)
+            continue;
+
+        uId = gBmMapUnit[ny][nx];
+        if (!uId)
+            continue;
+
+        if ((uId & 0xC0) != faction)
+            continue;
+
+        unit = GetUnit(uId);
+
+        skills = GetClassSkillList(unit->pClassData->number);
+        if (skills)
+            for (j = 0; skills[j] != SKILL_NONE; j++)
+                if (skills[j] == skillId)
+                    return TRUE;
+
+        skills = GetCharSkillList(unit->pCharacterData->number);
+        if (skills)
+            for (j = 0; skills[j] != SKILL_NONE; j++)
+                if (skills[j] == skillId)
+                    return TRUE;
+    }
+    return FALSE;
+}
+
+/** Alabaster Duty stat bonus.
+ *
+ * Fires for every unit in combat (via SkillFireStatBonusHooks).
+ * Two symmetric conditions:
+ *   1. Unit has SKILL_ALABASTER_DUTY and is adjacent to CA_DIVINE_DRAGON → +5
+ *   2. Unit has CA_DIVINE_DRAGON and is adjacent to SKILL_ALABASTER_DUTY → +5
+ */
+static int HasSkillInList(const u8 *skills, u8 skillId)
+{
+    int j;
+    if (!skills)
+        return FALSE;
+    for (j = 0; skills[j] != SKILL_NONE; j++)
+        if (skills[j] == skillId)
+            return TRUE;
+    return FALSE;
+}
+
+static int UnitHasSkill(const struct Unit* unit, u8 skillId)
+{
+    if (HasSkillInList(GetClassSkillList(unit->pClassData->number), skillId))
+        return TRUE;
+    if (HasSkillInList(GetCharSkillList(unit->pCharacterData->number), skillId))
+        return TRUE;
+    return FALSE;
+}
+
+static void SkillStatBonusAlabasterDuty(struct SkillBattleContext* ctx,
+                                        const struct Unit* unit)
+{
+    int faction;
+
+    if (gBattleStats.config & BATTLE_CONFIG_ARENA)
+        return;
+
+    faction = unit->index & 0xC0;
+
+    /* Case 1: unit has SKILL_ALABASTER_DUTY → adjacent Divine Dragon? */
+    if (UnitHasSkill(unit, SKILL_ALABASTER_DUTY)) {
+        if (UnitHasAdjacentDivineDragon(faction, unit->xPos, unit->yPos))
+            gBattleStats.critRate += 5;
+        return;
+    }
+
+    /* Case 2: unit has CA_DIVINE_DRAGON → adjacent skill owner? */
+    if (UNIT_CATTRIBUTES(unit) & CA_DIVINE_DRAGON) {
+        if (UnitHasAdjacentSkill(faction, unit->xPos, unit->yPos,
+                                 SKILL_ALABASTER_DUTY))
+            gBattleStats.critRate += 5;
+    }
+}
+
+/* Stat bonus registry — all hooks here fire for every unit, every combat. */
+
+static CONST_DATA StatBonusFn sStatBonusHooks[] = {
+    SkillStatBonusAlabasterDuty,
+    NULL,
+};
+
+void SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
+                             const struct Unit *unit)
+{
+    int i;
+    for (i = 0; sStatBonusHooks[i] != NULL; i++)
+        sStatBonusHooks[i](ctx, unit);
 }
 
 /* ---- Hook implementations ---- */
@@ -107,20 +236,20 @@ static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx) {
     int x = ctx->defender->unit.xPos;
     int y = ctx->defender->unit.yPos;
     int faction = ctx->defender->unit.index & 0xC0;
-    int i, dx, dy, femaleAllyCount = 0;
+    int dy2, dx2, femaleAllyCount = 0;
 
     if (gBattleStats.config & BATTLE_CONFIG_ARENA)
         return;
 
-    for (dy = -2; dy <= 2; dy++) {
-        for (dx = -2; dx <= 2; dx++) {
-            int nx = x + dx;
-            int ny = y + dy;
+    for (dy2 = -2; dy2 <= 2; dy2++) {
+        for (dx2 = -2; dx2 <= 2; dx2++) {
+            int nx = x + dx2;
+            int ny = y + dy2;
 
-            if (dx == 0 && dy == 0)
+            if (dx2 == 0 && dy2 == 0)
                 continue;
 
-            if (ABS(dx) + ABS(dy) > 2)
+            if (ABS(dx2) + ABS(dy2) > 2)
                 continue;
 
             int uId = gBmMapUnit[ny][nx];

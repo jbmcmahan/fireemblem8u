@@ -1002,6 +1002,10 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
     /* Defender skills that reduce incoming damage (e.g. Admiration) */
     SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &defender->unit);
 
+    /* Stat bonus hooks (e.g. Alabaster Duty) fire for both sides */
+    SkillFireStatBonusHooks(&ctx, &attacker->unit);
+    SkillFireStatBonusHooks(&ctx, &defender->unit);
+
     if (BattleRoll1RN(gBattleStats.critRate, FALSE) == TRUE) {
         if (BattleCheckSilencer(attacker, defender)) {
             gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_SILENCER;

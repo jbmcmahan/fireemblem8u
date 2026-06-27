@@ -22,9 +22,6 @@ int GetUnitSkills(const struct Unit *unit,
     int count = 0;
     const u8 *s;
 
-    /* Append new sources here as skill kinds grow.
-     * Each table maps ONE kind of identifier. */
-
     /* Class skills */
     s = findInTable(gClassSkillTable, unit->pClassData->number);
     if (s && count < max) outLists[count++] = s;

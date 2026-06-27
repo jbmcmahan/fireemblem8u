@@ -3,8 +3,8 @@
 
 #include "bmbattle.h"
 
-/* Maximum distinct skill lists a single unit can resolve (class,
- * character, learned, equipment, …).  Increase if a new source is added. */
+/* ---- Skill dispatch (ownership-based) ---- */
+
 enum { MAX_UNIT_SKILL_SOURCES = 4 };
 
 enum SkillHook {
@@ -24,32 +24,33 @@ struct SkillData {
     void (*battleHook)(struct SkillBattleContext *ctx);
 };
 
-/* Maps a unit identifier to a SKILL_NONE-terminated skill list.
- * Each ownership kind (class, character, …) gets its own CONST_DATA
- * table; all share this shape. */
 struct UnitSkillEnt {
     u8 unitId;
-    const u8 *skills;
+    const u8 *skills;   /* SKILL_NONE-terminated */
 };
 
-/* Ownership tables — append new ones as skill sources grow. */
 extern CONST_DATA struct UnitSkillEnt gClassSkillTable[];
 extern CONST_DATA struct UnitSkillEnt gCharSkillTable[];
 
-/** Resolve all skill lists for *unit*.  Writes up to *max* pointers
- *  into *outLists*.  Returns the number written. */
 int GetUnitSkills(const struct Unit *unit,
                   const u8 **outLists, int max);
 
-/** Dispatch one skill list: fire every hook matching *hook*. */
 void SkillDispatchBattle(enum SkillHook hook,
                          struct SkillBattleContext *ctx,
                          const u8 *skillList);
 
-/** Dispatch all skill lists for *unit*.  Convenience wrapper around
- *  GetUnitSkills + SkillDispatchBattle. */
 void SkillDispatchForUnit(enum SkillHook hook,
                           struct SkillBattleContext *ctx,
                           const struct Unit *unit);
+
+/* ---- Stat bonus hooks (ownership-free) ----
+ * Fired for every combat unit, regardless of whether they own skills.
+ * Append new hooks to sStatBonusHooks[] in data_skills.c. */
+
+typedef void (*StatBonusFn)(struct SkillBattleContext *ctx,
+                            const struct Unit *unit);
+
+void SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
+                             const struct Unit *unit);
 
 #endif // GUARD_BMSKILL_H

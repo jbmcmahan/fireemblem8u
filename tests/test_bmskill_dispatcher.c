@@ -4,7 +4,7 @@
  * The dispatcher doesn't know about ownership.  A unit's skills can
  * come from a class table, a character table, a learned trait, support
  * bonus, or anywhere else.  SkillDispatchForUnit() resolves all lists
- * and dispatches them in order; SkillDispatchBattle() handles a single.
+ * and dispatches them in order; SkillBattle() handles a single.
  */
 
 #include <unity.h>
@@ -31,7 +31,7 @@ enum SkillHook {
 };
 
 struct ClassData     { u8 number; };
-struct CharacterData { u8 number; };
+struct CharacterData { u8 number; u32 attributes; };
 
 struct Unit {
     struct ClassData     *pClassData;
@@ -57,6 +57,9 @@ struct SkillData {
     u8 hook;
     void (*battleHook)(struct SkillBattleContext *ctx);
 };
+
+typedef void (*StatBonusFn)(struct SkillBattleContext *ctx,
+                            const struct Unit *unit);
 
 struct UnitSkillEnt {
     u8 unitId;
@@ -157,6 +160,50 @@ static void Test_SkillDispatchForUnit(enum SkillHook hook,
         Test_SkillDispatchBattle(hook, ctx, lists[i]);
 }
 
+/* ---- Stat bonus test harness ----------------------------------------- */
+
+static struct TestStatBonus {
+    StatBonusFn fn;
+    int callCount;
+} sStatBonusTestRegistry[8];
+
+static int sNumStatBonusHooks;
+
+static void Test_SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
+                                         const struct Unit *unit)
+{
+    int i;
+    for (i = 0; i < sNumStatBonusHooks; i++) {
+        sStatBonusTestRegistry[i].callCount++;
+        sStatBonusTestRegistry[i].fn(ctx, unit);
+    }
+}
+
+static void Test_RegisterStatBonus(StatBonusFn fn)
+{
+    sStatBonusTestRegistry[sNumStatBonusHooks].fn = fn;
+    sStatBonusTestRegistry[sNumStatBonusHooks].callCount = 0;
+    sNumStatBonusHooks++;
+}
+
+/* ---- Test stat bonus hooks ------------------------------------------- */
+
+static int gCritModifier;
+
+static void TestStatBonusCritPlus5(struct SkillBattleContext *ctx,
+                                   const struct Unit *unit)
+{
+    (void)ctx; (void)unit;
+    gCritModifier += 5;
+}
+
+static void TestStatBonusCritPlus10(struct SkillBattleContext *ctx,
+                                    const struct Unit *unit)
+{
+    (void)ctx; (void)unit;
+    gCritModifier += 10;
+}
+
 /* ---- Test hooks & counters ------------------------------------------- */
 
 typedef struct {
@@ -179,7 +226,13 @@ static void TestAdmirationHook(struct SkillBattleContext *ctx)
     gTestStats.lastCtx = ctx;
 }
 
-void setUp(void)   { memset(&gTestStats, 0, sizeof(gTestStats)); }
+void setUp(void)
+{
+    memset(&gTestStats, 0, sizeof(gTestStats));
+    gCritModifier = 0;
+    sNumStatBonusHooks = 0;
+}
+
 void tearDown(void) { }
 
 /* ---- Tests: list termination ----------------------------------------- */
@@ -350,6 +403,66 @@ static void test_dispatch_wrong_hook_noop(void)
     TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
 }
 
+/* ---- Tests: stat bonus hooks (ownership-free) ------------------------ */
+
+static void test_stat_bonus_fires_for_every_unit(void)
+{
+    Test_RegisterStatBonus(TestStatBonusCritPlus5);
+
+    struct ClassData     cd  = { .number = 1 };
+    struct CharacterData cd2 = { .number = 1 };
+    struct Unit          u  = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    atk = { .unit = u }, def = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
+
+    sNumStatBonusHooks = 0;
+    Test_RegisterStatBonus(TestStatBonusCritPlus5);
+
+    Test_SkillFireStatBonusHooks(&ctx, &u);
+    TEST_ASSERT_EQUAL_INT(1, sStatBonusTestRegistry[0].callCount);
+    TEST_ASSERT_EQUAL_INT(5, gCritModifier);
+}
+
+static void test_stat_bonus_fires_for_defender_too(void)
+{
+    struct ClassData     cd  = { .number = 1 };
+    struct CharacterData cd2 = { .number = 1 };
+    struct Unit          u  = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    atk = { .unit = u }, def = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
+
+    sNumStatBonusHooks = 0;
+    Test_RegisterStatBonus(TestStatBonusCritPlus5);
+    Test_RegisterStatBonus(TestStatBonusCritPlus10);
+
+    /* Simulate what bmbattle.c does: fire for both sides */
+    Test_SkillFireStatBonusHooks(&ctx, &u);   /* attacker bonus */
+    TEST_ASSERT_EQUAL_INT(5 + 10, gCritModifier);
+
+    gCritModifier = 0;
+    Test_SkillFireStatBonusHooks(&ctx, &u);   /* defender bonus */
+    TEST_ASSERT_EQUAL_INT(5 + 10, gCritModifier);
+}
+
+static void test_stat_bonus_noop_when_none_registered(void)
+{
+#define TEST_CLASS_SNIPER   0x01
+#define TEST_CHAR_LOUIS     0xFF
+    struct ClassData     cd  = { .number = TEST_CLASS_SNIPER };
+    struct CharacterData cd2 = { .number = TEST_CHAR_LOUIS };
+    struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    atk   = { .unit = u }, def = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
+
+    sNumStatBonusHooks = 0;  /* no hooks registered */
+
+    Test_SkillFireStatBonusHooks(&ctx, &u);  /* should not crash */
+    TEST_ASSERT_EQUAL_INT(0, gCritModifier);
+}
+
 /* ---- Tests: data integrity ------------------------------------------- */
 
 static void test_skill_data_id_matches_index(void)
@@ -427,6 +540,9 @@ int main(void)
     RUN_TEST(test_dispatch_after_dmg_fires_char_skill);
     RUN_TEST(test_dispatch_both_sources_in_one_call);
     RUN_TEST(test_dispatch_wrong_hook_noop);
+    RUN_TEST(test_stat_bonus_fires_for_every_unit);
+    RUN_TEST(test_stat_bonus_fires_for_defender_too);
+    RUN_TEST(test_stat_bonus_noop_when_none_registered);
     RUN_TEST(test_skill_data_id_matches_index);
     RUN_TEST(test_null_hook_for_skill_none);
     RUN_TEST(test_sure_shot_hook_is_pre_hit);
