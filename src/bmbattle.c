@@ -974,7 +974,7 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
 
     gBattleStats.damage = 0;
 
-    SkillDispatchBattle(SKILL_HOOK_PRE_HIT, &ctx);
+    SkillDispatchForUnit(SKILL_HOOK_PRE_HIT, &ctx, &attacker->unit);
 
     if (!(gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)) {
         if (!BattleRoll2RN(gBattleStats.hitRate, TRUE)) {
@@ -998,6 +998,9 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
 
     if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_GREATSHLD)
         gBattleStats.damage = 0;
+
+    /* Defender skills that reduce incoming damage (e.g. Admiration) */
+    SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &defender->unit);
 
     if (BattleRoll1RN(gBattleStats.critRate, FALSE) == TRUE) {
         if (BattleCheckSilencer(attacker, defender)) {
