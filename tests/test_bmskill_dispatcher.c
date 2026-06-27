@@ -18,9 +18,10 @@ typedef unsigned int     u32;
 typedef signed   char    s8;
 
 enum {
-    SKILL_NONE       = 0,
-    SKILL_SURE_SHOT  = 1,
-    SKILL_ADMIRATION = 2,
+    SKILL_NONE            = 0,
+    SKILL_SURE_SHOT       = 1,
+    SKILL_ADMIRATION      = 2,
+    SKILL_ASPIRING_HERO   = 3,
 };
 
 enum { MAX_UNIT_SKILL_SOURCES = 4 };
