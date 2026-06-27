@@ -10,6 +10,7 @@ enum { MAX_UNIT_SKILL_SOURCES = 4 };
 enum SkillHook {
     SKILL_HOOK_PRE_HIT   = 0,
     SKILL_HOOK_AFTER_DMG = 1,
+    SKILL_HOOK_PRE_CRIT  = 2,
 };
 
 struct SkillBattleContext {

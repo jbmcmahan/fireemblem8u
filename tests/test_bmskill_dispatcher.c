@@ -18,9 +18,10 @@ typedef unsigned int     u32;
 typedef signed   char    s8;
 
 enum {
-    SKILL_NONE       = 0,
-    SKILL_SURE_SHOT  = 1,
-    SKILL_ADMIRATION = 2,
+    SKILL_NONE           = 0,
+    SKILL_SURE_SHOT      = 1,
+    SKILL_ADMIRATION     = 2,
+    SKILL_ALABASTER_DUTY = 3,
 };
 
 enum { MAX_UNIT_SKILL_SOURCES = 4 };
@@ -28,6 +29,7 @@ enum { MAX_UNIT_SKILL_SOURCES = 4 };
 enum SkillHook {
     SKILL_HOOK_PRE_HIT   = 0,
     SKILL_HOOK_AFTER_DMG = 1,
+    SKILL_HOOK_PRE_CRIT  = 2,
 };
 
 struct ClassData     { u8 number; };
@@ -73,12 +75,18 @@ static const u8 TestCharSkillList_Louis[] = {
     SKILL_ADMIRATION, SKILL_NONE,
 };
 
+static const u8 TestSkillList_Vander[] = {
+    SKILL_ALABASTER_DUTY, SKILL_NONE,
+};
+
 static struct SkillData TestSkillData[] = {
     [0] = { .id = 0, .hook = SKILL_HOOK_PRE_HIT, .battleHook = NULL },
     [SKILL_SURE_SHOT] = {
         .id = SKILL_SURE_SHOT, .hook = SKILL_HOOK_PRE_HIT, .battleHook = NULL },
     [SKILL_ADMIRATION] = {
         .id = SKILL_ADMIRATION, .hook = SKILL_HOOK_AFTER_DMG, .battleHook = NULL },
+    [SKILL_ALABASTER_DUTY] = {
+        .id = SKILL_ALABASTER_DUTY, .hook = SKILL_HOOK_PRE_CRIT, .battleHook = NULL },
 };
 
 /* ---- Test "ownership" tables (mirror of gClassSkillTable / gCharSkillTable) */
@@ -87,6 +95,7 @@ enum {
     TEST_CLASS_SNIPER   = 0x01,
     TEST_CLASS_SNIPER_F = 0x02,
     TEST_CHAR_LOUIS     = 0xFF,
+    TEST_CHAR_VANDER    = 0xFE,
 };
 
 static struct UnitSkillEnt TestClassTable[] = {
@@ -96,7 +105,8 @@ static struct UnitSkillEnt TestClassTable[] = {
 };
 
 static struct UnitSkillEnt TestCharTable[] = {
-    { TEST_CHAR_LOUIS, TestCharSkillList_Louis },
+    { TEST_CHAR_LOUIS,  TestCharSkillList_Louis },
+    { TEST_CHAR_VANDER, TestSkillList_Vander    },
     { 0, NULL },
 };
 
@@ -162,6 +172,7 @@ static void Test_SkillDispatchForUnit(enum SkillHook hook,
 typedef struct {
     int preHitCallCount;
     int afterDmgCallCount;
+    int preCritCallCount;
     struct SkillBattleContext *lastCtx;
 } TestDispatchStats;
 
@@ -176,6 +187,12 @@ static void TestSureShotHook(struct SkillBattleContext *ctx)
 static void TestAdmirationHook(struct SkillBattleContext *ctx)
 {
     gTestStats.afterDmgCallCount++;
+    gTestStats.lastCtx = ctx;
+}
+
+static void TestAlabasterDutyHook(struct SkillBattleContext *ctx)
+{
+    gTestStats.preCritCallCount++;
     gTestStats.lastCtx = ctx;
 }
 
@@ -350,6 +367,44 @@ static void test_dispatch_wrong_hook_noop(void)
     TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
 }
 
+/* ---- Tests: PRE_CRIT dispatch (Alabaster Duty) ----------------------- */
+
+static void test_alabaster_duty_fires_on_pre_crit(void)
+{
+    struct ClassData     cd  = { .number = 0x99 };  /* not in class table */
+    struct CharacterData cd2 = { .number = TEST_CHAR_VANDER };
+    struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    atk = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = { .attacker = &atk, .defender = 0, .hit = &hit };
+
+    TestSkillData[SKILL_ALABASTER_DUTY].battleHook = TestAlabasterDutyHook;
+    Test_SkillDispatchForUnit(SKILL_HOOK_PRE_CRIT, &ctx, &u);
+    TEST_ASSERT_EQUAL_INT(1, gTestStats.preCritCallCount);
+    TestSkillData[SKILL_ALABASTER_DUTY].battleHook = NULL;
+}
+
+static void test_pre_crit_wrong_hook_noop(void)
+{
+    struct ClassData     cd  = { .number = 0x99 };
+    struct CharacterData cd2 = { .number = TEST_CHAR_VANDER };
+    struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    atk = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = { .attacker = &atk, .defender = 0, .hit = &hit };
+
+    TestSkillData[SKILL_ALABASTER_DUTY].battleHook = TestAlabasterDutyHook;
+    Test_SkillDispatchForUnit(SKILL_HOOK_PRE_HIT, &ctx, &u);
+    TEST_ASSERT_EQUAL_INT(0, gTestStats.preCritCallCount);
+    TestSkillData[SKILL_ALABASTER_DUTY].battleHook = NULL;
+}
+
+static void test_alabaster_duty_hook_is_pre_crit(void)
+{
+    TEST_ASSERT_EQUAL_UINT(SKILL_HOOK_PRE_CRIT,
+                           TestSkillData[SKILL_ALABASTER_DUTY].hook);
+}
+
 /* ---- Tests: data integrity ------------------------------------------- */
 
 static void test_skill_data_id_matches_index(void)
@@ -427,6 +482,9 @@ int main(void)
     RUN_TEST(test_dispatch_after_dmg_fires_char_skill);
     RUN_TEST(test_dispatch_both_sources_in_one_call);
     RUN_TEST(test_dispatch_wrong_hook_noop);
+    RUN_TEST(test_alabaster_duty_fires_on_pre_crit);
+    RUN_TEST(test_pre_crit_wrong_hook_noop);
+    RUN_TEST(test_alabaster_duty_hook_is_pre_crit);
     RUN_TEST(test_skill_data_id_matches_index);
     RUN_TEST(test_null_hook_for_skill_none);
     RUN_TEST(test_sure_shot_hook_is_pre_hit);

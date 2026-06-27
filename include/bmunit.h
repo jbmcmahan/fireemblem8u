@@ -349,7 +349,7 @@ enum
     CA_UNSELECTABLE = (1 << 20),
     CA_TRIANGLEATTACK_PEGASI = (1 << 21),
     CA_TRIANGLEATTACK_ARMORS = (1 << 22),
-    CA_BIT_23 = (1 << 23),
+    CA_DIVINE_DRAGON = (1 << 23),,
     CA_NEGATE_LETHALITY = (1 << 24),
     CA_ASSASSIN = (1 << 25),
     CA_MAGICSEAL = (1 << 26),

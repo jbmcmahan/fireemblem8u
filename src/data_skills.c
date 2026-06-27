@@ -11,11 +11,19 @@
 
 static void SkillSureShotBattleHook(struct SkillBattleContext* ctx);
 static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx);
+static void SkillAlabasterDutyBattleHook(struct SkillBattleContext* ctx);
 
 /* ---- Skill lists (SKILL_NONE-terminated) ---- */
 
 CONST_DATA u8 SkillList_Sniper[] = {
     SKILL_SURE_SHOT,
+    SKILL_NONE,
+};
+
+/* Vander's personal skill: grants +5 crit when adjacent to the Divine
+ * Dragon.  Vander has Alabaster Duty; the Divine Dragon has CA_DIVINE_DRAGON. */
+CONST_DATA u8 CharSkillList_Vander[] = {
+    SKILL_ALABASTER_DUTY,
     SKILL_NONE,
 };
 
@@ -31,6 +39,11 @@ CONST_DATA struct SkillData gSkillData[] = {
         .id = SKILL_SURE_SHOT,
         .hook = SKILL_HOOK_PRE_HIT,
         .battleHook = SkillSureShotBattleHook,
+    },
+    [SKILL_ALABASTER_DUTY] = {
+        .id = SKILL_ALABASTER_DUTY,
+        .hook = SKILL_HOOK_PRE_CRIT,
+        .battleHook = SkillAlabasterDutyBattleHook,
     },
     [SKILL_ADMIRATION] = {
         .id = SKILL_ADMIRATION,
@@ -53,7 +66,8 @@ CONST_DATA struct UnitSkillEnt gClassSkillTable[] = {
 };
 
 CONST_DATA struct UnitSkillEnt gCharSkillTable[] = {
-    { CHARACTER_LOUIS, CharSkillList_Louis },
+    { CHARACTER_LOUIS,  CharSkillList_Louis  },
+    { CHARACTER_VANDER, CharSkillList_Vander },
     { 0, NULL },
 };
 
@@ -75,6 +89,38 @@ const u8* GetCharSkillList(u8 charId)
             return gCharSkillTable[i].skills;
     }
     return NULL;
+}
+
+/* ---- Helper: scan 4-way adjacency for CA_DIVINE_DRAGON ally -------- */
+
+static int UnitHasAdjacentDivineDragon(int faction, int x, int y)
+{
+    static const int dx[] = { -1, +1,  0,  0 };
+    static const int dy[] = {  0,  0, -1, +1 };
+    int dir;
+
+    for (dir = 0; dir < 4; dir++) {
+        int nx = x + dx[dir];
+        int ny = y + dy[dir];
+        int uId;
+        struct Unit *unit;
+
+        if (nx < 0 || ny < 0)
+            continue;
+
+        uId = gBmMapUnit[ny][nx];
+        if (!uId)
+            continue;
+
+        if ((uId & 0xC0) != faction)
+            continue;
+
+        unit = GetUnit(uId);
+        if (UNIT_CATTRIBUTES(unit) & CA_DIVINE_DRAGON)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 /* ---- Hook implementations ---- */
@@ -147,4 +193,43 @@ static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx) {
 
     if (femaleAllyCount >= 2 && gBattleStats.damage >= 2)
         gBattleStats.damage -= 2;
+}
+
+/* Alabaster Duty — Vander's personal skill.
+ *
+ * Two cases:
+ *   1. Vander (has this skill) attacks an enemy.  If an ally with
+ *      CA_DIVINE_DRAGON is within 1 space of Vander, Vander gets +5 crit.
+ *   2. A unit with CA_DIVINE_DRAGON (the Divine Dragon) attacks an enemy.
+ *      If an ally with Alabaster Duty (Vander) is within 1 space, the
+ *      Divine Dragon gets +5 crit.
+ *
+ * The hook fires once per dispatch (attacker or defender).  It checks
+ * BOTH the attacker and the defender: if either one qualifies, it
+ * boosts only that unit's crit for this exchange.  For the attacker
+ * it modifies gBattleStats.critRate directly.  For the defender it
+ * modifies battleEffectiveCritRate so the counter-attack inherits
+ * the bonus via BattleUpdateBattleStats. */
+static void SkillAlabasterDutyBattleHook(struct SkillBattleContext* ctx) {
+    int faction;
+
+    if (gBattleStats.config & BATTLE_CONFIG_ARENA)
+        return;
+
+    /* Case 1: attacker has this skill (Vander) and is adjacent to the Divine Dragon */
+    if (ctx->attacker->unit.pCharacterData->number == CHARACTER_VANDER) {
+        faction = ctx->attacker->unit.index & 0xC0;
+        if (UnitHasAdjacentDivineDragon(faction,
+                ctx->attacker->unit.xPos, ctx->attacker->unit.yPos)) {
+            gBattleStats.critRate += 5;
+        }
+    }
+    /* Case 2: defender has this skill (Vander) and is adjacent to the Divine Dragon */
+    if (ctx->defender->unit.pCharacterData->number == CHARACTER_VANDER) {
+        faction = ctx->defender->unit.index & 0xC0;
+        if (UnitHasAdjacentDivineDragon(faction,
+                ctx->defender->unit.xPos, ctx->defender->unit.yPos)) {
+            ctx->defender->battleEffectiveCritRate += 5;
+        }
+    }
 }
