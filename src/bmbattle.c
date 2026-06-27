@@ -1160,6 +1160,15 @@ s8 BattleGenerateHit(struct BattleUnit* attacker, struct BattleUnit* defender) {
     BattleUpdateBattleStats(attacker, defender);
 
     BattleGenerateHitTriangleAttack(attacker, defender);
+
+    /* Blinding Flash: if the attacker initiated combat and owns the skill,
+     * the defender suffers Avo -10 (attacker's effective Hit +10). */
+    if (!(gBattleHitIterator->info & BATTLE_HIT_INFO_RETALIATION)) {
+        struct Unit* skillOwner = &attacker->unit;
+        if (UnitHasSkill(skillOwner, SKILL_BLINDING_FLASH))
+            gBattleStats.hitRate += 10;
+    }
+
     BattleGenerateHitAttributes(attacker, defender);
     BattleGenerateHitEffects(attacker, defender);
 
