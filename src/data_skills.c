@@ -202,10 +202,32 @@ static void SkillStatBonusAlabasterDuty(struct SkillBattleContext* ctx,
     }
 }
 
+/** Blood Fury — if HP is below max, grants Crit +10.
+ * Fires each exchange via stat bonus hooks. Only applies when the
+ * skill owner is the current attacker (they get it on counter/follow-up
+ * too, since roles reverse per hit). */
+static void SkillStatBonusBloodFury(struct SkillBattleContext* ctx,
+                                    const struct Unit* unit)
+{
+    if (gBattleStats.config & BATTLE_CONFIG_SIMULATE)
+        return;
+
+    if (!UnitHasSkill(unit, SKILL_BLOOD_FURY))
+        return;
+
+    /* Only applies when the skill owner is the current striker */
+    if (unit != &ctx->attacker->unit)
+        return;
+
+    if (unit->curHP < unit->maxHP)
+        gBattleStats.critRate += 10;
+}
+
 /* Stat bonus registry — all hooks here fire for every unit, every combat. */
 
 static CONST_DATA StatBonusFn sStatBonusHooks[] = {
     SkillStatBonusAlabasterDuty,
+    SkillStatBonusBloodFury,
     NULL,
 };
 
