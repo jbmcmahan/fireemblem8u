@@ -21,7 +21,7 @@ enum {
     SKILL_NONE            = 0,
     SKILL_SURE_SHOT       = 1,
     SKILL_ADMIRATION      = 2,
-    SKILL_ASPIRING_HERO   = 3,
+    SKILL_TEST_AFTER_DMG  = 3,
 };
 
 enum { MAX_UNIT_SKILL_SOURCES = 4 };
@@ -59,9 +59,6 @@ struct SkillData {
     void (*battleHook)(struct SkillBattleContext *ctx);
 };
 
-typedef void (*StatBonusFn)(struct SkillBattleContext *ctx,
-                            const struct Unit *unit);
-
 struct UnitSkillEnt {
     u8 unitId;
     const u8 *skills;   /* SKILL_NONE-terminated */
@@ -77,12 +74,18 @@ static const u8 TestCharSkillList_Louis[] = {
     SKILL_ADMIRATION, SKILL_NONE,
 };
 
+static const u8 TestCharSkillList_DebugAfterDmg[] = {
+    SKILL_TEST_AFTER_DMG, SKILL_NONE,
+};
+
 static struct SkillData TestSkillData[] = {
     [0] = { .id = 0, .hook = SKILL_HOOK_PRE_HIT, .battleHook = NULL },
     [SKILL_SURE_SHOT] = {
         .id = SKILL_SURE_SHOT, .hook = SKILL_HOOK_PRE_HIT, .battleHook = NULL },
     [SKILL_ADMIRATION] = {
-        .id = SKILL_ADMIRATION, .hook = SKILL_HOOK_AFTER_DMG, .battleHook = NULL },
+        .id = SKILL_ADMIRATION, .hook = SKILL_HOOK_PRE_HIT, .battleHook = NULL },
+    [SKILL_TEST_AFTER_DMG] = {
+        .id = SKILL_TEST_AFTER_DMG, .hook = SKILL_HOOK_AFTER_DMG, .battleHook = NULL },
 };
 
 /* ---- Test "ownership" tables (mirror of gClassSkillTable / gCharSkillTable) */
@@ -91,6 +94,7 @@ enum {
     TEST_CLASS_SNIPER   = 0x01,
     TEST_CLASS_SNIPER_F = 0x02,
     TEST_CHAR_LOUIS     = 0xFF,
+    TEST_CHAR_DEBUG     = 0xFE,
 };
 
 static struct UnitSkillEnt TestClassTable[] = {
@@ -101,6 +105,7 @@ static struct UnitSkillEnt TestClassTable[] = {
 
 static struct UnitSkillEnt TestCharTable[] = {
     { TEST_CHAR_LOUIS, TestCharSkillList_Louis },
+    { TEST_CHAR_DEBUG, TestCharSkillList_DebugAfterDmg },
     { 0, NULL },
 };
 
@@ -161,50 +166,6 @@ static void Test_SkillDispatchForUnit(enum SkillHook hook,
         Test_SkillDispatchBattle(hook, ctx, lists[i]);
 }
 
-/* ---- Stat bonus test harness ----------------------------------------- */
-
-static struct TestStatBonus {
-    StatBonusFn fn;
-    int callCount;
-} sStatBonusTestRegistry[8];
-
-static int sNumStatBonusHooks;
-
-static void Test_SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
-                                         const struct Unit *unit)
-{
-    int i;
-    for (i = 0; i < sNumStatBonusHooks; i++) {
-        sStatBonusTestRegistry[i].callCount++;
-        sStatBonusTestRegistry[i].fn(ctx, unit);
-    }
-}
-
-static void Test_RegisterStatBonus(StatBonusFn fn)
-{
-    sStatBonusTestRegistry[sNumStatBonusHooks].fn = fn;
-    sStatBonusTestRegistry[sNumStatBonusHooks].callCount = 0;
-    sNumStatBonusHooks++;
-}
-
-/* ---- Test stat bonus hooks ------------------------------------------- */
-
-static int gCritModifier;
-
-static void TestStatBonusCritPlus5(struct SkillBattleContext *ctx,
-                                   const struct Unit *unit)
-{
-    (void)ctx; (void)unit;
-    gCritModifier += 5;
-}
-
-static void TestStatBonusCritPlus10(struct SkillBattleContext *ctx,
-                                    const struct Unit *unit)
-{
-    (void)ctx; (void)unit;
-    gCritModifier += 10;
-}
-
 /* ---- Test hooks & counters ------------------------------------------- */
 
 typedef struct {
@@ -221,7 +182,7 @@ static void TestSureShotHook(struct SkillBattleContext *ctx)
     gTestStats.lastCtx = ctx;
 }
 
-static void TestAdmirationHook(struct SkillBattleContext *ctx)
+static void TestAfterDmgHook(struct SkillBattleContext *ctx)
 {
     gTestStats.afterDmgCallCount++;
     gTestStats.lastCtx = ctx;
@@ -230,8 +191,6 @@ static void TestAdmirationHook(struct SkillBattleContext *ctx)
 void setUp(void)
 {
     memset(&gTestStats, 0, sizeof(gTestStats));
-    gCritModifier = 0;
-    sNumStatBonusHooks = 0;
 }
 
 void tearDown(void) { }
@@ -337,7 +296,7 @@ static void test_dispatch_pre_hit_fires_class_skill(void)
     TestSkillData[SKILL_SURE_SHOT].battleHook = NULL;
 }
 
-static void test_dispatch_after_dmg_fires_char_skill(void)
+static void test_dispatch_after_dmg_ignores_admiration(void)
 {
     struct ClassData     cd  = { .number = 1 };
     struct CharacterData cd2 = { .number = TEST_CHAR_LOUIS };
@@ -347,16 +306,32 @@ static void test_dispatch_after_dmg_fires_char_skill(void)
     struct SkillBattleContext ctx = {
         .attacker = &def, .defender = &def, .hit = &hit };
 
-    TestSkillData[SKILL_ADMIRATION].battleHook = TestAdmirationHook;
+    TestSkillData[SKILL_ADMIRATION].battleHook = TestAfterDmgHook;
+    Test_SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &u);
+    TEST_ASSERT_EQUAL_INT(0, gTestStats.afterDmgCallCount);
+    TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
+}
+
+static void test_dispatch_after_dmg_fires_test_skill(void)
+{
+    struct ClassData     cd  = { .number = 1 };
+    struct CharacterData cd2 = { .number = TEST_CHAR_DEBUG };
+    struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
+    struct BattleUnit    def = { .unit = u };
+    struct BattleHit     hit = { 0 };
+    struct SkillBattleContext ctx = {
+        .attacker = &def, .defender = &def, .hit = &hit };
+
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = TestAfterDmgHook;
     Test_SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &u);
     TEST_ASSERT_EQUAL_INT(1, gTestStats.afterDmgCallCount);
-    TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = NULL;
 }
 
 static void test_dispatch_both_sources_in_one_call(void)
 {
     struct ClassData     cd  = { .number = TEST_CLASS_SNIPER };
-    struct CharacterData cd2 = { .number = TEST_CHAR_LOUIS };
+    struct CharacterData cd2 = { .number = TEST_CHAR_DEBUG };
     struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
     struct BattleUnit    atk = { .unit = u }, def = { .unit = u };
     struct BattleHit     hit = { 0 };
@@ -364,7 +339,7 @@ static void test_dispatch_both_sources_in_one_call(void)
         .attacker = &atk, .defender = &def, .hit = &hit };
 
     TestSkillData[SKILL_SURE_SHOT].battleHook  = TestSureShotHook;
-    TestSkillData[SKILL_ADMIRATION].battleHook = TestAdmirationHook;
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = TestAfterDmgHook;
 
     Test_SkillDispatchForUnit(SKILL_HOOK_PRE_HIT, &ctx, &u);
     TEST_ASSERT_EQUAL_INT(1, gTestStats.preHitCallCount);
@@ -374,7 +349,7 @@ static void test_dispatch_both_sources_in_one_call(void)
     TEST_ASSERT_EQUAL_INT(1, gTestStats.afterDmgCallCount);
 
     TestSkillData[SKILL_SURE_SHOT].battleHook  = NULL;
-    TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = NULL;
 }
 
 static void test_dispatch_wrong_hook_noop(void)
@@ -388,7 +363,7 @@ static void test_dispatch_wrong_hook_noop(void)
     struct SkillBattleContext ctx = { .attacker = &atk, .defender = 0, .hit = &hit };
 
     TestSkillData[SKILL_SURE_SHOT].battleHook  = TestSureShotHook;
-    TestSkillData[SKILL_ADMIRATION].battleHook = TestAdmirationHook;
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = TestAfterDmgHook;
 
     /* AFTER_DMG should NOT fire PRE_HIT skills */
     Test_SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &u);
@@ -401,67 +376,7 @@ static void test_dispatch_wrong_hook_noop(void)
     TEST_ASSERT_EQUAL_INT(0, gTestStats.afterDmgCallCount);
 
     TestSkillData[SKILL_SURE_SHOT].battleHook  = NULL;
-    TestSkillData[SKILL_ADMIRATION].battleHook = NULL;
-}
-
-/* ---- Tests: stat bonus hooks (ownership-free) ------------------------ */
-
-static void test_stat_bonus_fires_for_every_unit(void)
-{
-    Test_RegisterStatBonus(TestStatBonusCritPlus5);
-
-    struct ClassData     cd  = { .number = 1 };
-    struct CharacterData cd2 = { .number = 1 };
-    struct Unit          u  = { .pClassData = &cd, .pCharacterData = &cd2 };
-    struct BattleUnit    atk = { .unit = u }, def = { .unit = u };
-    struct BattleHit     hit = { 0 };
-    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
-
-    sNumStatBonusHooks = 0;
-    Test_RegisterStatBonus(TestStatBonusCritPlus5);
-
-    Test_SkillFireStatBonusHooks(&ctx, &u);
-    TEST_ASSERT_EQUAL_INT(1, sStatBonusTestRegistry[0].callCount);
-    TEST_ASSERT_EQUAL_INT(5, gCritModifier);
-}
-
-static void test_stat_bonus_fires_for_defender_too(void)
-{
-    struct ClassData     cd  = { .number = 1 };
-    struct CharacterData cd2 = { .number = 1 };
-    struct Unit          u  = { .pClassData = &cd, .pCharacterData = &cd2 };
-    struct BattleUnit    atk = { .unit = u }, def = { .unit = u };
-    struct BattleHit     hit = { 0 };
-    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
-
-    sNumStatBonusHooks = 0;
-    Test_RegisterStatBonus(TestStatBonusCritPlus5);
-    Test_RegisterStatBonus(TestStatBonusCritPlus10);
-
-    /* Simulate what bmbattle.c does: fire for both sides */
-    Test_SkillFireStatBonusHooks(&ctx, &u);   /* attacker bonus */
-    TEST_ASSERT_EQUAL_INT(5 + 10, gCritModifier);
-
-    gCritModifier = 0;
-    Test_SkillFireStatBonusHooks(&ctx, &u);   /* defender bonus */
-    TEST_ASSERT_EQUAL_INT(5 + 10, gCritModifier);
-}
-
-static void test_stat_bonus_noop_when_none_registered(void)
-{
-#define TEST_CLASS_SNIPER   0x01
-#define TEST_CHAR_LOUIS     0xFF
-    struct ClassData     cd  = { .number = TEST_CLASS_SNIPER };
-    struct CharacterData cd2 = { .number = TEST_CHAR_LOUIS };
-    struct Unit          u   = { .pClassData = &cd, .pCharacterData = &cd2 };
-    struct BattleUnit    atk   = { .unit = u }, def = { .unit = u };
-    struct BattleHit     hit = { 0 };
-    struct SkillBattleContext ctx = { .attacker = &atk, .defender = &def, .hit = &hit };
-
-    sNumStatBonusHooks = 0;  /* no hooks registered */
-
-    Test_SkillFireStatBonusHooks(&ctx, &u);  /* should not crash */
-    TEST_ASSERT_EQUAL_INT(0, gCritModifier);
+    TestSkillData[SKILL_TEST_AFTER_DMG].battleHook = NULL;
 }
 
 /* ---- Tests: data integrity ------------------------------------------- */
@@ -484,10 +399,15 @@ static void test_sure_shot_hook_is_pre_hit(void)
                            TestSkillData[SKILL_SURE_SHOT].hook);
 }
 
-static void test_admiration_hook_is_after_dmg(void)
+static void test_admiration_has_no_battle_hook(void)
+{
+    TEST_ASSERT_NULL(TestSkillData[SKILL_ADMIRATION].battleHook);
+}
+
+static void test_after_dmg_test_skill_hook_is_after_dmg(void)
 {
     TEST_ASSERT_EQUAL_UINT(SKILL_HOOK_AFTER_DMG,
-                           TestSkillData[SKILL_ADMIRATION].hook);
+                           TestSkillData[SKILL_TEST_AFTER_DMG].hook);
 }
 
 /* ---- Tests: struct size pins (host vs GBA) --------------------------- */
@@ -513,11 +433,11 @@ static void test_skilldata_size(void)
      4. Ballista exclusion          – GetItemIndex()/ballista IDs
      5. Activation probability      – BattleRoll1RN(level, FALSE)
  *
- * Admiration map scan:
+ * Deterministic personal skills:
      6. gBmMapUnit tile lookup      – GBA memory-mapped only
      7. UNIT_CATTRIBUTES(CA_FEMALE) – requires real CharacterData pointers
      8. Rectilinear distance scan   – ABS(dx)+ABS(dy) <= 2 on game map
-     9. gBattleStats.damage -= 2    – GBA-side global write
+     9. Forecast-visible stat pass  – SkillApplyBattleStatBonuses
  */
 
 static void test_documented_gaps_acknowledged(void)
@@ -538,16 +458,15 @@ int main(void)
     RUN_TEST(test_getskills_no_match);
     RUN_TEST(test_getskills_max_clamped);
     RUN_TEST(test_dispatch_pre_hit_fires_class_skill);
-    RUN_TEST(test_dispatch_after_dmg_fires_char_skill);
+    RUN_TEST(test_dispatch_after_dmg_ignores_admiration);
+    RUN_TEST(test_dispatch_after_dmg_fires_test_skill);
     RUN_TEST(test_dispatch_both_sources_in_one_call);
     RUN_TEST(test_dispatch_wrong_hook_noop);
-    RUN_TEST(test_stat_bonus_fires_for_every_unit);
-    RUN_TEST(test_stat_bonus_fires_for_defender_too);
-    RUN_TEST(test_stat_bonus_noop_when_none_registered);
     RUN_TEST(test_skill_data_id_matches_index);
     RUN_TEST(test_null_hook_for_skill_none);
     RUN_TEST(test_sure_shot_hook_is_pre_hit);
-    RUN_TEST(test_admiration_hook_is_after_dmg);
+    RUN_TEST(test_admiration_has_no_battle_hook);
+    RUN_TEST(test_after_dmg_test_skill_hook_is_after_dmg);
     RUN_TEST(test_skillbattlecontext_size);
     RUN_TEST(test_skilldata_size);
     RUN_TEST(test_documented_gaps_acknowledged);

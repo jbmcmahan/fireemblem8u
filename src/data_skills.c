@@ -10,8 +10,6 @@
 #include "constants/skills.h"
 
 static void SkillSureShotBattleHook(struct SkillBattleContext* ctx);
-static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx);
-static void SkillAspiringHeroBattleHook(struct SkillBattleContext* ctx);
 
 /* ---- Skill lists (SKILL_NONE-terminated) ---- */
 
@@ -20,9 +18,42 @@ CONST_DATA u8 SkillList_Sniper[] = {
     SKILL_NONE,
 };
 
+CONST_DATA u8 CharSkillList_Louis[] = {
+    SKILL_ADMIRATION,
+    SKILL_NONE,
+};
+
+CONST_DATA u8 CharSkillList_Vander[] = {
+    SKILL_ALABASTER_DUTY,
+    SKILL_NONE,
+};
+
+CONST_DATA u8 CharSkillList_Amber[] = {
+    SKILL_ASPIRING_HERO,
+    SKILL_NONE,
+};
+
+CONST_DATA u8 CharSkillList_Hortensia[] = {
+    SKILL_BIG_PERSONALITY,
+    SKILL_NONE,
+};
+
+CONST_DATA u8 CharSkillList_Kagetsu[] = {
+    SKILL_BLINDING_FLASH,
+    SKILL_NONE,
+};
+
+CONST_DATA u8 CharSkillList_Panette[] = {
+    SKILL_BLOOD_FURY,
+    SKILL_NONE,
+};
+
 /* ---- Skill data table ---- */
 
-CONST_DATA struct SkillData gSkillData[] = {
+CONST_DATA struct SkillData gSkillData[SKILL_MAX] = {
+    [SKILL_NONE] = {
+        .id = SKILL_NONE,
+    },
     [SKILL_SURE_SHOT] = {
         .id = SKILL_SURE_SHOT,
         .hook = SKILL_HOOK_PRE_HIT,
@@ -30,13 +61,21 @@ CONST_DATA struct SkillData gSkillData[] = {
     },
     [SKILL_ADMIRATION] = {
         .id = SKILL_ADMIRATION,
-        .hook = SKILL_HOOK_AFTER_DMG,
-        .battleHook = SkillAdmirationBattleHook,
+    },
+    [SKILL_ALABASTER_DUTY] = {
+        .id = SKILL_ALABASTER_DUTY,
     },
     [SKILL_ASPIRING_HERO] = {
         .id = SKILL_ASPIRING_HERO,
-        .hook = SKILL_HOOK_PRE_HIT,
-        .battleHook = SkillAspiringHeroBattleHook,
+    },
+    [SKILL_BIG_PERSONALITY] = {
+        .id = SKILL_BIG_PERSONALITY,
+    },
+    [SKILL_BLINDING_FLASH] = {
+        .id = SKILL_BLINDING_FLASH,
+    },
+    [SKILL_BLOOD_FURY] = {
+        .id = SKILL_BLOOD_FURY,
     },
 };
 
@@ -49,6 +88,12 @@ CONST_DATA struct UnitSkillEnt gClassSkillTable[] = {
 };
 
 CONST_DATA struct UnitSkillEnt gCharSkillTable[] = {
+    { CHARACTER_LOUIS,     CharSkillList_Louis },
+    { CHARACTER_VANDER,    CharSkillList_Vander },
+    { CHARACTER_AMBER,     CharSkillList_Amber },
+    { CHARACTER_HORTENSIA, CharSkillList_Hortensia },
+    { CHARACTER_KAGETSU,   CharSkillList_Kagetsu },
+    { CHARACTER_PANETTE,   CharSkillList_Panette },
     { 0, NULL },
 };
 
@@ -72,7 +117,12 @@ const u8* GetCharSkillList(u8 charId)
     return NULL;
 }
 
-/* ---- Stat bonus hooks (fire for every unit) ---- */
+/* ---- Prediction-visible battle stat bonuses ---- */
+
+static int IsMapPositionInBounds(int x, int y)
+{
+    return x >= 0 && y >= 0 && x < gBmMapSize.x && y < gBmMapSize.y;
+}
 
 /* 4-way adjacency scan (O(1) — four tile reads) */
 static int UnitHasAdjacentDivineDragon(int faction, int x, int y)
@@ -87,7 +137,7 @@ static int UnitHasAdjacentDivineDragon(int faction, int x, int y)
         int uId;
         struct Unit *unit;
 
-        if (nx < 0 || ny < 0)
+        if (!IsMapPositionInBounds(nx, ny))
             continue;
 
         uId = gBmMapUnit[ny][nx];
@@ -115,10 +165,8 @@ static int UnitHasAdjacentSkill(int faction, int x, int y, u8 skillId)
         int ny = y + dy[dir];
         int uId;
         struct Unit *unit;
-        const u8 *skills;
-        int j;
 
-        if (nx < 0 || ny < 0)
+        if (!IsMapPositionInBounds(nx, ny))
             continue;
 
         uId = gBmMapUnit[ny][nx];
@@ -129,114 +177,167 @@ static int UnitHasAdjacentSkill(int faction, int x, int y, u8 skillId)
             continue;
 
         unit = GetUnit(uId);
-
-        skills = GetClassSkillList(unit->pClassData->number);
-        if (skills)
-            for (j = 0; skills[j] != SKILL_NONE; j++)
-                if (skills[j] == skillId)
-                    return TRUE;
-
-        skills = GetCharSkillList(unit->pCharacterData->number);
-        if (skills)
-            for (j = 0; skills[j] != SKILL_NONE; j++)
-                if (skills[j] == skillId)
-                    return TRUE;
+        if (UnitHasSkill(unit, skillId))
+            return TRUE;
     }
     return FALSE;
 }
 
-/** Alabaster Duty stat bonus.
- *
- * Fires for every unit in combat (via SkillFireStatBonusHooks).
- * Two symmetric conditions:
- *   1. Unit has SKILL_ALABASTER_DUTY and is adjacent to CA_DIVINE_DRAGON → +5
- *   2. Unit has CA_DIVINE_DRAGON and is adjacent to SKILL_ALABASTER_DUTY → +5
- */
-static int HasSkillInList(const u8 *skills, u8 skillId)
+static int UnitHasFemaleAlliesWithinRange(const struct Unit *unit, int range, int required)
 {
-    int j;
-    if (!skills)
+    int x = unit->xPos;
+    int y = unit->yPos;
+    int faction = unit->index & 0xC0;
+    int count = 0;
+    int dy, dx;
+
+    for (dy = -range; dy <= range; dy++) {
+        for (dx = -range; dx <= range; dx++) {
+            int nx = x + dx;
+            int ny = y + dy;
+            int uId;
+            struct Unit *other;
+
+            if (dx == 0 && dy == 0)
+                continue;
+
+            if (ABS(dx) + ABS(dy) > range)
+                continue;
+
+            if (!IsMapPositionInBounds(nx, ny))
+                continue;
+
+            uId = gBmMapUnit[ny][nx];
+            if (!uId)
+                continue;
+
+            if ((uId & 0xC0) != faction)
+                continue;
+
+            other = GetUnit(uId);
+
+            if (other->state & (US_DEAD | US_NOT_DEPLOYED | US_BIT16))
+                continue;
+
+            if (UNIT_CATTRIBUTES(other) & CA_FEMALE) {
+                count++;
+                if (count >= required)
+                    return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+static void AddBattleAvoid(struct BattleUnit *bu, int amount)
+{
+    bu->battleAvoidRate += amount;
+
+    if (bu->battleAvoidRate < 0)
+        bu->battleAvoidRate = 0;
+}
+
+static void ApplyUnitBattleStatBonuses(struct BattleUnit *bu)
+{
+    const struct Unit *unit = &bu->unit;
+    int faction = unit->index & 0xC0;
+
+    if (UnitHasSkill(unit, SKILL_ADMIRATION)) {
+        if (UnitHasFemaleAlliesWithinRange(unit, 2, 2))
+            bu->battleDefense += 2;
+    }
+
+    if (UnitHasSkill(unit, SKILL_ALABASTER_DUTY)) {
+        if (UnitHasAdjacentDivineDragon(faction, unit->xPos, unit->yPos))
+            bu->battleCritRate += 5;
+    } else if (UNIT_CATTRIBUTES(unit) & CA_DIVINE_DRAGON) {
+        if (UnitHasAdjacentSkill(faction, unit->xPos, unit->yPos,
+                                 SKILL_ALABASTER_DUTY))
+            bu->battleCritRate += 5;
+    }
+
+    if (UnitHasSkill(unit, SKILL_BLOOD_FURY) && unit->curHP < unit->maxHP)
+        bu->battleCritRate += 10;
+}
+
+static int CombatIsIsolated(const struct BattleUnit* attacker,
+                            const struct BattleUnit* defender)
+{
+    const int dx[4] = { -1, +1,  0,  0 };
+    const int dy[4] = {  0,  0, -1, +1 };
+    int ax = attacker->unit.xPos, ay = attacker->unit.yPos;
+    int bx = defender->unit.xPos, by = defender->unit.yPos;
+    int dir;
+
+    for (dir = 0; dir < 4; dir++) {
+        int nx = ax + dx[dir], ny = ay + dy[dir];
+        int uId;
+
+        if (!IsMapPositionInBounds(nx, ny))
+            continue;
+
+        uId = gBmMapUnit[ny][nx];
+        if (!uId)
+            continue;
+
+        if (nx == bx && ny == by)
+            continue;
+
         return FALSE;
-    for (j = 0; skills[j] != SKILL_NONE; j++)
-        if (skills[j] == skillId)
-            return TRUE;
-    return FALSE;
+    }
+
+    for (dir = 0; dir < 4; dir++) {
+        int nx = bx + dx[dir], ny = by + dy[dir];
+        int uId;
+
+        if (!IsMapPositionInBounds(nx, ny))
+            continue;
+
+        uId = gBmMapUnit[ny][nx];
+        if (!uId)
+            continue;
+
+        if (nx == ax && ny == ay)
+            continue;
+
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
-int UnitHasSkill(const struct Unit* unit, u8 skillId)
+void SkillApplyBattleStatBonuses(struct BattleUnit *actor,
+                                 struct BattleUnit *target)
 {
-    if (HasSkillInList(GetClassSkillList(unit->pClassData->number), skillId))
-        return TRUE;
-    if (HasSkillInList(GetCharSkillList(unit->pCharacterData->number), skillId))
-        return TRUE;
-    return FALSE;
-}
-
-int UnitHealStaffRangeBonus(const struct Unit *unit)
-{
-    return UnitHasSkill(unit, SKILL_BIG_PERSONALITY) ? 1 : 0;
-}
-
-static void SkillStatBonusAlabasterDuty(struct SkillBattleContext* ctx,
-                                        const struct Unit* unit)
-{
-    int faction;
-
     if (gBattleStats.config & BATTLE_CONFIG_ARENA)
         return;
 
-    faction = unit->index & 0xC0;
-
-    /* Case 1: unit has SKILL_ALABASTER_DUTY → adjacent Divine Dragon? */
-    if (UnitHasSkill(unit, SKILL_ALABASTER_DUTY)) {
-        if (UnitHasAdjacentDivineDragon(faction, unit->xPos, unit->yPos))
-            gBattleStats.critRate += 5;
+    if (!actor)
         return;
+
+    ApplyUnitBattleStatBonuses(actor);
+
+    if (!target || !target->unit.pClassData)
+        return;
+
+    ApplyUnitBattleStatBonuses(target);
+
+    if (UnitHasSkill(&actor->unit, SKILL_BLINDING_FLASH))
+        AddBattleAvoid(target, -10);
+
+    if (!CombatIsIsolated(actor, target))
+        return;
+
+    if (UnitHasSkill(&actor->unit, SKILL_ASPIRING_HERO)) {
+        actor->battleHitRate += 20;
+        AddBattleAvoid(actor, -10);
     }
 
-    /* Case 2: unit has CA_DIVINE_DRAGON → adjacent skill owner? */
-    if (UNIT_CATTRIBUTES(unit) & CA_DIVINE_DRAGON) {
-        if (UnitHasAdjacentSkill(faction, unit->xPos, unit->yPos,
-                                 SKILL_ALABASTER_DUTY))
-            gBattleStats.critRate += 5;
+    if (UnitHasSkill(&target->unit, SKILL_ASPIRING_HERO)) {
+        target->battleHitRate += 20;
+        AddBattleAvoid(target, -10);
     }
-}
-
-/** Blood Fury — if HP is below max, grants Crit +10.
- * Fires each exchange via stat bonus hooks. Only applies when the
- * skill owner is the current attacker (they get it on counter/follow-up
- * too, since roles reverse per hit). */
-static void SkillStatBonusBloodFury(struct SkillBattleContext* ctx,
-                                    const struct Unit* unit)
-{
-    if (gBattleStats.config & BATTLE_CONFIG_SIMULATE)
-        return;
-
-    if (!UnitHasSkill(unit, SKILL_BLOOD_FURY))
-        return;
-
-    /* Only applies when the skill owner is the current striker */
-    if (unit != &ctx->attacker->unit)
-        return;
-
-    if (unit->curHP < unit->maxHP)
-        gBattleStats.critRate += 10;
-}
-
-/* Stat bonus registry — all hooks here fire for every unit, every combat. */
-
-static CONST_DATA StatBonusFn sStatBonusHooks[] = {
-    SkillStatBonusAlabasterDuty,
-    SkillStatBonusBloodFury,
-    NULL,
-};
-
-void SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
-                             const struct Unit *unit)
-{
-    int i;
-    for (i = 0; sStatBonusHooks[i] != NULL; i++)
-        sStatBonusHooks[i](ctx, unit);
 }
 
 /* ---- Hook implementations ---- */
@@ -263,110 +364,4 @@ static void SkillSureShotBattleHook(struct SkillBattleContext* ctx) {
 
     if (BattleRoll1RN(attacker->unit.level, FALSE) == TRUE)
         hit->attributes |= BATTLE_HIT_ATTR_SURESHOT;
-}
-
-static void SkillAdmirationBattleHook(struct SkillBattleContext* ctx) {
-    int x = ctx->defender->unit.xPos;
-    int y = ctx->defender->unit.yPos;
-    int faction = ctx->defender->unit.index & 0xC0;
-    int dy2, dx2, femaleAllyCount = 0;
-
-    if (gBattleStats.config & BATTLE_CONFIG_ARENA)
-        return;
-
-    for (dy2 = -2; dy2 <= 2; dy2++) {
-        for (dx2 = -2; dx2 <= 2; dx2++) {
-            int nx = x + dx2;
-            int ny = y + dy2;
-
-            if (dx2 == 0 && dy2 == 0)
-                continue;
-
-            if (ABS(dx2) + ABS(dy2) > 2)
-                continue;
-
-            int uId = gBmMapUnit[ny][nx];
-            struct Unit* unit;
-
-            if (!uId)
-                continue;
-
-            unit = GetUnit(uId);
-
-            if ((uId & 0xC0) != faction)
-                continue;
-
-            if (unit->state & (US_DEAD | US_NOT_DEPLOYED | US_BIT16))
-                continue;
-
-            if (unit == &ctx->defender->unit)
-                continue;
-
-            if (UNIT_CATTRIBUTES(unit) & CA_FEMALE)
-                femaleAllyCount++;
-        }
-    }
-
-    if (femaleAllyCount >= 2 && gBattleStats.damage >= 2)
-        gBattleStats.damage -= 2;
-}
-
-static int CombatIsIsolated(const struct BattleUnit* attacker,
-                            const struct BattleUnit* defender)
-{
-    const int dx[4] = { -1, +1,  0,  0 };
-    const int dy[4] = {  0,  0, -1, +1 };
-    int ax = attacker->unit.xPos, ay = attacker->unit.yPos;
-    int bx = defender->unit.xPos, by = defender->unit.yPos;
-    int dir;
-
-    /* Scan attacker's 4 neighbors — reject if any unit besides defender */
-    for (dir = 0; dir < 4; dir++) {
-        int nx = ax + dx[dir], ny = ay + dy[dir];
-        int uId;
-        if (nx < 0 || ny < 0) continue;
-        uId = gBmMapUnit[ny][nx];
-        if (!uId) continue;
-        if (nx == bx && ny == by) continue;
-        return FALSE;
-    }
-
-    /* Scan defender's 4 neighbors — reject if any unit besides attacker */
-    for (dir = 0; dir < 4; dir++) {
-        int nx = bx + dx[dir], ny = by + dy[dir];
-        int uId;
-        if (nx < 0 || ny < 0) continue;
-        uId = gBmMapUnit[ny][nx];
-        if (!uId) continue;
-        if (nx == ax && ny == ay) continue;
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-/* Aspiring Hero — if no other unit is adjacent to either combatant,
- * the skill owner gets Hit +20 and Avo -10.
- *
- * Fires as PRE_HIT for the current attacker.  Both sides are checked
- * in the same call so the effect applies on counter-strikes too:
- *   - Owner attacking → hitRate += 20
- *   - Owner defending → hitRate += 10 (= defender's Avo -10) */
-static void SkillAspiringHeroBattleHook(struct SkillBattleContext* ctx)
-{
-    if (gBattleStats.config & BATTLE_CONFIG_ARENA)
-        return;
-
-    if (!UnitHasSkill(&ctx->attacker->unit, SKILL_ASPIRING_HERO)
-     && !UnitHasSkill(&ctx->defender->unit, SKILL_ASPIRING_HERO))
-        return;
-
-    if (!CombatIsIsolated(ctx->attacker, ctx->defender))
-        return;
-
-    if (UnitHasSkill(&ctx->attacker->unit, SKILL_ASPIRING_HERO))
-        gBattleStats.hitRate += 20;
-
-    if (UnitHasSkill(&ctx->defender->unit, SKILL_ASPIRING_HERO))
-        gBattleStats.hitRate += 10;
 }

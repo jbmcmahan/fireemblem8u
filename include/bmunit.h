@@ -166,7 +166,7 @@ struct Unit
     /* 32 */ u8 supports[UNIT_SUPPORT_MAX_COUNT];
     /* 39 */ s8 supportBits;
 
-    /* pad */
+    /* engage state */
     /* 3A */ u8 _u3A;
     /* 3B */ u8 _u3B;
 
@@ -178,28 +178,26 @@ struct Unit
     /* 44 */ u8 ai2;        // enum to gAi2ScriptTable
     /* 45 */ u8 ai_b_pc;
     /* 46 */ u8 ai_counter;
-
-    /* uEngageSkillUsed (#47): 0 = engage skill not yet used in the
-     * current engage window; non-zero = used. Set by
-     * ApplyEngageSkillToBattleUnit; cleared by Disengage. Single-use
-     * enforcement: the resolver no-ops if this byte is already non-zero.
-     * Initialized to 0 by ClearUnit (CpuFill16 over sizeof(struct Unit)).
-     *
-     * Placement at 0x47 reuses the documented padding byte; adjacent to
-     * ringEngageState (0x3B) was not feasible because 0x3C is already
-     * pMapSpriteHandle. */
-    /* 47 */ u8 uEngageSkillUsed;
-
-    /* engage: ringEmblemId/ringBondLevel (#49) — which ring is equipped
-     * (and how bonded) for this unit. Read by ApplySyncSkillsToBattleUnit
-     * and ApplyEngageSkillToBattleUnit. ringEmblemId: 0..11 = equipped
-     * Emblem id; 0xFF = no ring. ringBondLevel: 0..15, bond tier
-     * threshold (sync skills with sk.tier > ringBondLevel don't apply).
-     * Initialized to 0xFF/0 by ClearUnit. Reuses trailing padding bytes
-     * 0x48 and 0x49 — sizeof(struct Unit) is unchanged at 0x4C. */
-    /* 48 */ u8 ringEmblemId;
-    /* 49 */ u8 ringBondLevel;
 };
+
+#define UNIT_RING_EMBLEM_NONE 0xFF
+#define UNIT_RING_BOND_LEVEL_MASK 0x7F
+#define UNIT_ENGAGE_SKILL_USED_FLAG 0x80
+
+#define UNIT_RING_EMBLEM_ID(unit) ((unit)->_u3A)
+#define UNIT_RING_BOND_LEVEL(unit) ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK)
+#define UNIT_ENGAGE_SKILL_USED(unit) (((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) != 0)
+
+#define UNIT_SET_RING_EMBLEM_ID(unit, value) ((unit)->_u3A = (value))
+#define UNIT_SET_RING_BOND_LEVEL(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) | ((value) & UNIT_RING_BOND_LEVEL_MASK))
+#define UNIT_SET_ENGAGE_SKILL_USED(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK) | ((value) ? UNIT_ENGAGE_SKILL_USED_FLAG : 0))
+#define UNIT_CLEAR_ENGAGE_STATE(unit) \
+    do { \
+        UNIT_SET_RING_EMBLEM_ID((unit), UNIT_RING_EMBLEM_NONE); \
+        (unit)->_u3B = 0; \
+    } while (0)
 
 enum udef_ai_index {
     UDEF_AIIDX_AI_A,
@@ -350,6 +348,7 @@ enum
     CA_TRIANGLEATTACK_PEGASI = (1 << 21),
     CA_TRIANGLEATTACK_ARMORS = (1 << 22),
     CA_DIVINE_DRAGON    = (1 << 23),
+    CA_BIT_23           = CA_DIVINE_DRAGON,
     CA_NEGATE_LETHALITY = (1 << 24),
     CA_ASSASSIN = (1 << 25),
     CA_MAGICSEAL = (1 << 26),

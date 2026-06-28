@@ -230,6 +230,7 @@ void ClearUnit(struct Unit* unit) {
     u8 id = unit->index;
     CpuFill16(0, unit, sizeof(struct Unit));
     unit->index = id;
+    UNIT_CLEAR_ENGAGE_STATE(unit);
 }
 
 void CopyUnit(struct Unit* from, struct Unit* to) {

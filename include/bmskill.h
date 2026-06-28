@@ -43,15 +43,10 @@ void SkillDispatchForUnit(enum SkillHook hook,
                           struct SkillBattleContext *ctx,
                           const struct Unit *unit);
 
-/* ---- Stat bonus hooks (ownership-free) ----
- * Fired for every combat unit, regardless of whether they own skills.
- * Append new hooks to sStatBonusHooks[] in data_skills.c. */
+void SkillApplyBattleStatBonuses(struct BattleUnit *actor,
+                                 struct BattleUnit *target);
 
-typedef void (*StatBonusFn)(struct SkillBattleContext *ctx,
-                            const struct Unit *unit);
-
-void SkillFireStatBonusHooks(struct SkillBattleContext *ctx,
-                             const struct Unit *unit);
+int UnitHealStaffRangeBonus(const struct Unit *unit);
 
 /** Does *unit own *skillId* (class or character tables)? */
 s8 UnitHasSkill(const struct Unit *unit, u8 skillId);

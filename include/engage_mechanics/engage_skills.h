@@ -37,16 +37,16 @@ extern struct SkillDef gEngageSkillDefs[12 * SKILL_DEF_COUNT_ENGAGE];
  * struct BattleUnit (compiled with 8-byte pointers on x86_64/arm64) so that
  * host tests behave identically on macOS and Linux. The fields the resolver
  * touches are:
- *   - Unit.uEngageSkillUsed
- *   - Unit.ringEmblemId
- *   - Unit.ringBondLevel
+ *   - UNIT_RING_EMBLEM_ID
+ *   - UNIT_RING_BOND_LEVEL
+ *   - UNIT_ENGAGE_SKILL_USED
  *   - BattleUnit.battleAttack / battleHitRate / battleAvoidRate / battleCritRate
  *
  * Host tests use struct Unit / struct BattleUnit directly from this header
  * (no hand-rolled stubs) so the resolver's view of the struct is exactly the
- * struct the test sets up. If the real struct layout in bmunit.h changes
- * (e.g., a new field is added before uEngageSkillUsed), this mirror must
- * be updated in lockstep or the resolver tests will diverge. */
+ * struct the test sets up. If the real struct layout in bmunit.h changes,
+ * this mirror must be updated in lockstep or the resolver tests will
+ * diverge. */
 #if !defined(__APPLE__)
 #include "bmbattle.h"
 #else
@@ -89,9 +89,6 @@ struct Unit {
     unsigned char ai2;
     unsigned char ai_b_pc;
     unsigned char ai_counter;
-    unsigned char uEngageSkillUsed;  /* #70 */
-    unsigned char ringEmblemId;      /* #49 */
-    unsigned char ringBondLevel;     /* #49 */
 };
 
 struct BattleUnit {
@@ -108,6 +105,27 @@ struct BattleUnit {
     short battleEffectiveCritRate;
     /* 84 */ short battleSilencerRate;
 }; /* sizeof = 0x86 */
+#endif
+
+#ifndef UNIT_RING_EMBLEM_NONE
+#define UNIT_RING_EMBLEM_NONE 0xFF
+#define UNIT_RING_BOND_LEVEL_MASK 0x7F
+#define UNIT_ENGAGE_SKILL_USED_FLAG 0x80
+
+#define UNIT_RING_EMBLEM_ID(unit) ((unit)->_u3A)
+#define UNIT_RING_BOND_LEVEL(unit) ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK)
+#define UNIT_ENGAGE_SKILL_USED(unit) (((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) != 0)
+
+#define UNIT_SET_RING_EMBLEM_ID(unit, value) ((unit)->_u3A = (value))
+#define UNIT_SET_RING_BOND_LEVEL(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) | ((value) & UNIT_RING_BOND_LEVEL_MASK))
+#define UNIT_SET_ENGAGE_SKILL_USED(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK) | ((value) ? UNIT_ENGAGE_SKILL_USED_FLAG : 0))
+#define UNIT_CLEAR_ENGAGE_STATE(unit) \
+    do { \
+        UNIT_SET_RING_EMBLEM_ID((unit), UNIT_RING_EMBLEM_NONE); \
+        (unit)->_u3B = 0; \
+    } while (0)
 #endif
 
 void ApplySyncSkillsToBattleUnit(struct BattleUnit *bu, struct Unit *unit);

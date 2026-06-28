@@ -570,6 +570,7 @@ SECTIONS
         src/libagbsyscall.o(.text);
         src/agb_sram.o(.text);
         . = ALIGN(4); src/engage_mechanics/engage_data.o(.text);
+        . = ALIGN(4); src/engage_mechanics/engage_skills.o(.text);
         . = ALIGN(4); src/engage_skill_hook.o(.text);
         *libgcc.a:_ashldi3.o(.text);
         *libgcc.a:_call_via_rX.o(.text);
@@ -841,6 +842,7 @@ SECTIONS
         . = ALIGN(4); *libc.a:mprec.o(.rodata);
         . = ALIGN(4); *libc.a:syscalls.o(.rodata);
         . = ALIGN(4); src/engage_mechanics/engage_data.o(.rodata);
+        . = ALIGN(4); src/engage_mechanics/engage_skills.o(.rodata);
 
         /* .data */
         . = ALIGN(4); src/main.o(.data);
@@ -1220,6 +1222,7 @@ SECTIONS
         . = 0xFE0000; data/data_FE0000.o(.data);
         . = 0xFFF000; data/data_FFF000.o(.data);
         . = ALIGN(4); src/engage_mechanics/engage_data.o(.data);
+        . = ALIGN(4); src/engage_mechanics/engage_skills.o(.data);
     } = 0
 
   /* Stabs debugging sections.  */

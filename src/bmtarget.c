@@ -931,7 +931,7 @@ void MakeTargetListForAdjacentHeal(struct Unit* unit) {
 
     BmMapFill(gBmMapRange, 0);
 
-    if (UnitHasSkill(unit, SKILL_BIG_PERSONALITY)) {
+    if (UnitHealStaffRangeBonus(unit)) {
         InitTargets(x, y);
         MapAddInRange(x, y, 0, 2);
         ForEachUnitInRange(TryAddUnitToHealTargetList);
@@ -952,7 +952,7 @@ void MakeTargetListForRangedHeal(struct Unit* unit) {
 
     BmMapFill(gBmMapRange, 0);
 
-    MapAddInRange(x, y, GetUnitMagBy2Range(gSubjectUnit) + UnitHasSkill(gSubjectUnit, SKILL_BIG_PERSONALITY), 1);
+    MapAddInRange(x, y, GetUnitMagBy2Range(gSubjectUnit) + UnitHealStaffRangeBonus(gSubjectUnit), 1);
 
     ForEachUnitInRange(TryAddUnitToHealTargetList);
 

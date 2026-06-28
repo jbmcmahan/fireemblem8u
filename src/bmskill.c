@@ -22,15 +22,58 @@ int GetUnitSkills(const struct Unit *unit,
     int count = 0;
     const u8 *s;
 
+    if (!unit)
+        return 0;
+
     /* Class skills */
-    s = findInTable(gClassSkillTable, unit->pClassData->number);
-    if (s && count < max) outLists[count++] = s;
+    if (unit->pClassData) {
+        s = findInTable(gClassSkillTable, unit->pClassData->number);
+        if (s && count < max) outLists[count++] = s;
+    }
 
     /* Character (personal) skills */
-    s = findInTable(gCharSkillTable, unit->pCharacterData->number);
-    if (s && count < max) outLists[count++] = s;
+    if (unit->pCharacterData) {
+        s = findInTable(gCharSkillTable, unit->pCharacterData->number);
+        if (s && count < max) outLists[count++] = s;
+    }
 
     return count;
+}
+
+static s8 HasSkillInList(const u8 *skills, u8 skillId)
+{
+    int i;
+
+    if (!skills)
+        return FALSE;
+
+    for (i = 0; skills[i] != SKILL_NONE; ++i)
+        if (skills[i] == skillId)
+            return TRUE;
+
+    return FALSE;
+}
+
+s8 UnitHasSkill(const struct Unit *unit, u8 skillId)
+{
+    const u8 *lists[MAX_UNIT_SKILL_SOURCES];
+    int i, count;
+
+    if (!unit)
+        return FALSE;
+
+    count = GetUnitSkills(unit, lists, MAX_UNIT_SKILL_SOURCES);
+
+    for (i = 0; i < count; ++i)
+        if (HasSkillInList(lists[i], skillId))
+            return TRUE;
+
+    return FALSE;
+}
+
+int UnitHealStaffRangeBonus(const struct Unit *unit)
+{
+    return UnitHasSkill(unit, SKILL_BIG_PERSONALITY) ? 1 : 0;
 }
 
 void SkillDispatchBattle(enum SkillHook hook,
@@ -44,7 +87,12 @@ void SkillDispatchBattle(enum SkillHook hook,
 
     for (i = 0; skillList[i] != SKILL_NONE; ++i) {
         u8 skillId = skillList[i];
-        const struct SkillData *sd = gSkillData + skillId;
+        const struct SkillData *sd;
+
+        if (skillId >= SKILL_MAX)
+            continue;
+
+        sd = gSkillData + skillId;
 
         if (sd->id != skillId)
             continue;

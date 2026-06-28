@@ -26,6 +26,7 @@
 #include "constants/items.h"
 #include "constants/classes.h"
 #include "constants/characters.h"
+#include "constants/skills.h"
 #include "constants/terrains.h"
 #include "constants/chapters.h"
 
@@ -186,6 +187,7 @@ void BattleGenerateBallistaReal(struct Unit* actor, struct Unit* target) {
 void BattleGenerate(struct Unit* actor, struct Unit* target) {
     Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
     Engage_ComputeBattleUnitStats(&gBattleTarget, &gBattleActor);
+    SkillApplyBattleStatBonuses(&gBattleActor, &gBattleTarget);
 
     ComputeBattleUnitEffectiveStats(&gBattleActor, &gBattleTarget);
     ComputeBattleUnitEffectiveStats(&gBattleTarget, &gBattleActor);
@@ -228,6 +230,7 @@ void BattleGenerateUiStats(struct Unit* unit, s8 itemSlot) {
 
     SetBattleUnitWeapon(&gBattleActor, itemSlot);
     Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    SkillApplyBattleStatBonuses(&gBattleActor, &gBattleTarget);
 
     if (GetItemIndex(gBattleActor.weapon) == ITEM_SWORD_RUNESWORD) {
         gBattleActor.battleAttack -= gBattleActor.unit.pow / 2;
@@ -999,12 +1002,7 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
     if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_GREATSHLD)
         gBattleStats.damage = 0;
 
-    /* Defender skills that reduce incoming damage (e.g. Admiration) */
     SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &defender->unit);
-
-    /* Stat bonus hooks (e.g. Alabaster Duty) fire for both sides */
-    SkillFireStatBonusHooks(&ctx, &attacker->unit);
-    SkillFireStatBonusHooks(&ctx, &defender->unit);
 
     if (BattleRoll1RN(gBattleStats.critRate, FALSE) == TRUE) {
         if (BattleCheckSilencer(attacker, defender)) {
@@ -1160,14 +1158,6 @@ s8 BattleGenerateHit(struct BattleUnit* attacker, struct BattleUnit* defender) {
     BattleUpdateBattleStats(attacker, defender);
 
     BattleGenerateHitTriangleAttack(attacker, defender);
-
-    /* Blinding Flash: if the attacker initiated combat and owns the skill,
-     * the defender suffers Avo -10 (attacker's effective Hit +10). */
-    if (!(gBattleHitIterator->info & BATTLE_HIT_INFO_RETALIATION)) {
-        struct Unit* skillOwner = &attacker->unit;
-        if (UnitHasSkill(skillOwner, SKILL_BLINDING_FLASH))
-            gBattleStats.hitRate += 10;
-    }
 
     BattleGenerateHitAttributes(attacker, defender);
     BattleGenerateHitEffects(attacker, defender);

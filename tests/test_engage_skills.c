@@ -76,19 +76,17 @@ static void test_marth_engage_skill_kind_is_dual_strike(void)
 // #if !defined(__APPLE__) branch); on macOS it's the host mirror in the
 // #else branch. By using the same struct the resolver uses, we eliminate
 // any cast/layout-mismatch footgun. The resolver only touches:
-//   - Unit.ringEmblemId
-//   - Unit.ringBondLevel
-//   - Unit.uEngageSkillUsed
+//   - UNIT_RING_EMBLEM_ID
+//   - UNIT_RING_BOND_LEVEL
+//   - UNIT_ENGAGE_SKILL_USED
 //   - BattleUnit.battleAttack / battleHitRate / battleAvoidRate / battleCritRate
 // Other Unit/BattleUnit fields are zero-initialized and irrelevant.
-
-#define TEST_NO_RING 0xFF
 
 static void test_resolver_no_ring_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = TEST_NO_RING;
-    u.ringBondLevel = 15;
+    UNIT_SET_RING_EMBLEM_ID(&u, UNIT_RING_EMBLEM_NONE);
+    UNIT_SET_RING_BOND_LEVEL(&u, 15);
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
@@ -100,8 +98,8 @@ static void test_resolver_no_ring_noop(void)
 static void test_resolver_bond0_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = 0; // Marth
-    u.ringBondLevel = 0;
+    UNIT_SET_RING_EMBLEM_ID(&u, 0); // Marth
+    UNIT_SET_RING_BOND_LEVEL(&u, 0);
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
@@ -113,8 +111,8 @@ static void test_resolver_bond0_noop(void)
 static void test_resolver_bond15_marth_cumulative(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = 0; // Marth
-    u.ringBondLevel = 15;
+    UNIT_SET_RING_EMBLEM_ID(&u, 0); // Marth
+    UNIT_SET_RING_BOND_LEVEL(&u, 15);
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
     // Marth t1: HP_PCT (no-op, no battleMaxHp); t3: BREAK (no-op);
@@ -128,8 +126,8 @@ static void test_resolver_bond15_marth_cumulative(void)
 static void test_resolver_break_skill_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = 0; // Marth
-    u.ringBondLevel = 3; // unlocks Marth t3 BREAK only
+    UNIT_SET_RING_EMBLEM_ID(&u, 0); // Marth
+    UNIT_SET_RING_BOND_LEVEL(&u, 3); // unlocks Marth t3 BREAK only
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
@@ -141,8 +139,8 @@ static void test_resolver_break_skill_noop(void)
 static void test_resolver_hppct_deferred_noop(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = 0;
-    u.ringBondLevel = 1; // unlocks Marth t1 HP_PCT only
+    UNIT_SET_RING_EMBLEM_ID(&u, 0);
+    UNIT_SET_RING_BOND_LEVEL(&u, 1); // unlocks Marth t1 HP_PCT only
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplySyncSkillsToBattleUnit(&bu, &u);
     // HP_PCT has no battle target (no battleMaxHp field); no stat changes.
@@ -152,15 +150,15 @@ static void test_resolver_hppct_deferred_noop(void)
 static void test_engage_skill_idempotent(void)
 {
     struct Unit u; memset(&u, 0, sizeof(u));
-    u.ringEmblemId = 0; // Marth
-    u.ringBondLevel = 15;
+    UNIT_SET_RING_EMBLEM_ID(&u, 0); // Marth
+    UNIT_SET_RING_BOND_LEVEL(&u, 15);
     struct BattleUnit bu; memset(&bu, 0, sizeof(bu));
     ApplyEngageSkillToBattleUnit(&bu, &u);
     // Marth's engage skill is DUAL_STRIKE (no stat apply). Flag set.
-    TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
+    TEST_ASSERT_EQUAL_INT(1, UNIT_ENGAGE_SKILL_USED(&u));
     // Calling again is a no-op (idempotent).
     ApplyEngageSkillToBattleUnit(&bu, &u);
-    TEST_ASSERT_EQUAL_INT(1, u.uEngageSkillUsed);
+    TEST_ASSERT_EQUAL_INT(1, UNIT_ENGAGE_SKILL_USED(&u));
     TEST_ASSERT_EQUAL_INT(0, bu.battleAttack);
 }
 

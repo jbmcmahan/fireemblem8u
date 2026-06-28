@@ -13,7 +13,7 @@
 void Engage_ComputeBattleUnitStats(struct BattleUnit* attacker, struct BattleUnit* defender)
 {
     ComputeBattleUnitStats(attacker, defender);
-    if (attacker->unit) {
+    if (attacker) {
         ApplySyncSkillsToBattleUnit(attacker, &attacker->unit);
     }
 }

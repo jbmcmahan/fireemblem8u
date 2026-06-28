@@ -212,9 +212,8 @@ struct GameSavePackedUnit {       /* Save Data */
      * Disengage. */
     /* 24 */ u8 uEngageSkillUsed;
 
-    /* engage: ringEmblemId/ringBondLevel (#49) — mirror of struct Unit
-     * fields (0xFF/0 = no ring). Persisted so a unit that bonds with an
-     * Emblem retains its bond level across save/load. */
+    /* engage: ringEmblemId/ringBondLevel (#49) — persisted runtime engage
+     * state (0xFF/0 = no ring). */
     /* 25 */ u8 ringEmblemId;
     /* 26 */ u8 ringBondLevel;
 } BITPACKED;
@@ -281,8 +280,8 @@ struct SuspendSavePackedUnit {     /* Suspend Data */
      * not yet used in the current engage window; non-zero = used. */
     /* 34 */ u8 uEngageSkillUsed;
 
-    /* engage: ringEmblemId/ringBondLevel (#49) — mirror of struct Unit
-     * fields. Persisted across suspend. */
+    /* engage: ringEmblemId/ringBondLevel (#49) — persisted runtime engage
+     * state across suspend. */
     /* 35 */ u8 ringEmblemId;
     /* 36 */ u8 ringBondLevel;
 } BITPACKED;
