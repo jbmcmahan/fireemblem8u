@@ -48,6 +48,18 @@ void SkillApplyBattleStatBonuses(struct BattleUnit *actor,
 
 int UnitHealStaffRangeBonus(const struct Unit *unit);
 
+void SkillRecordBattleOpponents(const struct Unit *unitA,
+                                const struct Unit *unitB);
+
+void SkillClearUnitCombatState(const struct Unit *unit);
+
+s8 SkillUnitFoughtMostRecentOpponent(const struct Unit *unit,
+                                     const struct Unit *opponent);
+
+void SkillOnUnitBeginAction(const struct Unit *unit);
+void SkillOnUnitWait(const struct Unit *unit);
+s8 SkillUnitHasContemplativeBonus(const struct Unit *unit);
+
 /** Does *unit own *skillId* (class or character tables)? */
 s8 UnitHasSkill(const struct Unit *unit, u8 skillId);
 

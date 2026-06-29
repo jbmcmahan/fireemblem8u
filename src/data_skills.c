@@ -48,6 +48,11 @@ CONST_DATA u8 CharSkillList_Panette[] = {
     SKILL_NONE,
 };
 
+CONST_DATA u8 CharSkillList_Rosado[] = {
+    SKILL_CHARMER,
+    SKILL_NONE,
+};
+
 /* ---- Skill data table ---- */
 
 CONST_DATA struct SkillData gSkillData[SKILL_MAX] = {
@@ -77,6 +82,12 @@ CONST_DATA struct SkillData gSkillData[SKILL_MAX] = {
     [SKILL_BLOOD_FURY] = {
         .id = SKILL_BLOOD_FURY,
     },
+    [SKILL_CHARMER] = {
+        .id = SKILL_CHARMER,
+    },
+    [SKILL_CONTEMPLATIVE] = {
+        .id = SKILL_CONTEMPLATIVE,
+    },
 };
 
 /* ---- Unit skill lookup tables ---- */
@@ -94,6 +105,7 @@ CONST_DATA struct UnitSkillEnt gCharSkillTable[] = {
     { CHARACTER_HORTENSIA, CharSkillList_Hortensia },
     { CHARACTER_KAGETSU,   CharSkillList_Kagetsu },
     { CHARACTER_PANETTE,   CharSkillList_Panette },
+    { CHARACTER_ROSADO,    CharSkillList_Rosado },
     { 0, NULL },
 };
 
@@ -238,6 +250,14 @@ static void AddBattleAvoid(struct BattleUnit *bu, int amount)
         bu->battleAvoidRate = 0;
 }
 
+static void AddBattleCrit(struct BattleUnit *bu, int amount)
+{
+    bu->battleCritRate += amount;
+
+    if (bu->battleCritRate < 0)
+        bu->battleCritRate = 0;
+}
+
 static void ApplyUnitBattleStatBonuses(struct BattleUnit *bu)
 {
     const struct Unit *unit = &bu->unit;
@@ -259,6 +279,9 @@ static void ApplyUnitBattleStatBonuses(struct BattleUnit *bu)
 
     if (UnitHasSkill(unit, SKILL_BLOOD_FURY) && unit->curHP < unit->maxHP)
         bu->battleCritRate += 10;
+
+    if (SkillUnitHasContemplativeBonus(unit))
+        bu->battleDefense += 2;
 }
 
 static int CombatIsIsolated(const struct BattleUnit* attacker,
@@ -325,6 +348,14 @@ void SkillApplyBattleStatBonuses(struct BattleUnit *actor,
 
     if (UnitHasSkill(&actor->unit, SKILL_BLINDING_FLASH))
         AddBattleAvoid(target, -10);
+
+    if (UnitHasSkill(&actor->unit, SKILL_CHARMER) &&
+        SkillUnitFoughtMostRecentOpponent(&actor->unit, &target->unit))
+        AddBattleCrit(target, -10);
+
+    if (UnitHasSkill(&target->unit, SKILL_CHARMER) &&
+        SkillUnitFoughtMostRecentOpponent(&target->unit, &actor->unit))
+        AddBattleCrit(actor, -10);
 
     if (!CombatIsIsolated(actor, target))
         return;

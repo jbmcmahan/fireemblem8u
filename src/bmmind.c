@@ -22,6 +22,7 @@
 #include "popup.h"
 #include "eventinfo.h"
 #include "mapanim.h"
+#include "bmskill.h"
 
 #include "bmmind.h"
 
@@ -120,6 +121,7 @@ u32 ApplyUnitAction(ProcPtr proc) {
 
     switch (gActionData.unitActionType) {
         case UNIT_ACTION_WAIT:
+            SkillOnUnitWait(gActiveUnit);
         case UNIT_ACTION_TRAPPED:
             gActiveUnit->state |= US_HAS_MOVED;
             return 1;

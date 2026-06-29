@@ -7,6 +7,17 @@ extern CONST_DATA struct SkillData gSkillData[];
 extern CONST_DATA struct UnitSkillEnt gClassSkillTable[];
 extern CONST_DATA struct UnitSkillEnt gCharSkillTable[];
 
+static u8 EWRAM_DATA sUnitMostRecentOpponent[0x100] = {};
+static u8 EWRAM_DATA sUnitContemplativeActive[0x100] = {};
+
+static u8 GetUnitSkillStateId(const struct Unit *unit)
+{
+    if (!unit)
+        return 0;
+
+    return unit->index;
+}
+
 static const u8 *findInTable(const struct UnitSkillEnt *table, u8 unitId)
 {
     int i;
@@ -74,6 +85,81 @@ s8 UnitHasSkill(const struct Unit *unit, u8 skillId)
 int UnitHealStaffRangeBonus(const struct Unit *unit)
 {
     return UnitHasSkill(unit, SKILL_BIG_PERSONALITY) ? 1 : 0;
+}
+
+void SkillRecordBattleOpponents(const struct Unit *unitA,
+                                const struct Unit *unitB)
+{
+    u8 idA = GetUnitSkillStateId(unitA);
+    u8 idB = GetUnitSkillStateId(unitB);
+
+    if (!idA || !idB)
+        return;
+
+    sUnitMostRecentOpponent[idA] = idB;
+    sUnitMostRecentOpponent[idB] = idA;
+}
+
+void SkillClearUnitCombatState(const struct Unit *unit)
+{
+    int i;
+    u8 id = GetUnitSkillStateId(unit);
+
+    if (!id)
+        return;
+
+    sUnitMostRecentOpponent[id] = 0;
+    sUnitContemplativeActive[id] = FALSE;
+
+    for (i = 1; i < 0x100; i++) {
+        if (sUnitMostRecentOpponent[i] == id)
+            sUnitMostRecentOpponent[i] = 0;
+    }
+}
+
+s8 SkillUnitFoughtMostRecentOpponent(const struct Unit *unit,
+                                     const struct Unit *opponent)
+{
+    u8 id = GetUnitSkillStateId(unit);
+    u8 opponentId = GetUnitSkillStateId(opponent);
+
+    if (!id || !opponentId)
+        return FALSE;
+
+    return sUnitMostRecentOpponent[id] == opponentId;
+}
+
+void SkillOnUnitBeginAction(const struct Unit *unit)
+{
+    u8 id = GetUnitSkillStateId(unit);
+
+    if (!id)
+        return;
+
+    sUnitContemplativeActive[id] = FALSE;
+}
+
+void SkillOnUnitWait(const struct Unit *unit)
+{
+    u8 id = GetUnitSkillStateId(unit);
+
+    if (!id)
+        return;
+
+    if (!UnitHasSkill(unit, SKILL_CONTEMPLATIVE))
+        return;
+
+    sUnitContemplativeActive[id] = TRUE;
+}
+
+s8 SkillUnitHasContemplativeBonus(const struct Unit *unit)
+{
+    u8 id = GetUnitSkillStateId(unit);
+
+    if (!id)
+        return FALSE;
+
+    return sUnitContemplativeActive[id];
 }
 
 void SkillDispatchBattle(enum SkillHook hook,
