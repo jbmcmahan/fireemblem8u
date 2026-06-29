@@ -7,8 +7,8 @@ extern CONST_DATA struct SkillData gSkillData[];
 extern CONST_DATA struct UnitSkillEnt gClassSkillTable[];
 extern CONST_DATA struct UnitSkillEnt gCharSkillTable[];
 
-static u8 EWRAM_DATA sUnitMostRecentOpponent[0x100] = {};
-static u8 EWRAM_DATA sUnitContemplativeActive[0x100] = {};
+static u8 sUnitMostRecentOpponent[0x100] __attribute__((section(".bss")));
+static u8 sUnitContemplativeActive[(0x100 + 7) / 8] __attribute__((section(".bss")));
 
 static u8 GetUnitSkillStateId(const struct Unit *unit)
 {
@@ -82,6 +82,29 @@ s8 UnitHasSkill(const struct Unit *unit, u8 skillId)
     return FALSE;
 }
 
+static void SetUnitContemplativeState(u8 id, s8 active)
+{
+    u8 mask;
+
+    if (!id)
+        return;
+
+    mask = 1 << (id & 7);
+
+    if (active)
+        sUnitContemplativeActive[id >> 3] |= mask;
+    else
+        sUnitContemplativeActive[id >> 3] &= ~mask;
+}
+
+static s8 GetUnitContemplativeState(u8 id)
+{
+    if (!id)
+        return FALSE;
+
+    return (sUnitContemplativeActive[id >> 3] >> (id & 7)) & 1;
+}
+
 int UnitHealStaffRangeBonus(const struct Unit *unit)
 {
     return UnitHasSkill(unit, SKILL_BIG_PERSONALITY) ? 1 : 0;
@@ -109,7 +132,7 @@ void SkillClearUnitCombatState(const struct Unit *unit)
         return;
 
     sUnitMostRecentOpponent[id] = 0;
-    sUnitContemplativeActive[id] = FALSE;
+    SetUnitContemplativeState(id, FALSE);
 
     for (i = 1; i < 0x100; i++) {
         if (sUnitMostRecentOpponent[i] == id)
@@ -136,7 +159,7 @@ void SkillOnUnitBeginAction(const struct Unit *unit)
     if (!id)
         return;
 
-    sUnitContemplativeActive[id] = FALSE;
+    SetUnitContemplativeState(id, FALSE);
 }
 
 void SkillOnUnitWait(const struct Unit *unit)
@@ -149,7 +172,7 @@ void SkillOnUnitWait(const struct Unit *unit)
     if (!UnitHasSkill(unit, SKILL_CONTEMPLATIVE))
         return;
 
-    sUnitContemplativeActive[id] = TRUE;
+    SetUnitContemplativeState(id, TRUE);
 }
 
 s8 SkillUnitHasContemplativeBonus(const struct Unit *unit)
@@ -159,7 +182,7 @@ s8 SkillUnitHasContemplativeBonus(const struct Unit *unit)
     if (!id)
         return FALSE;
 
-    return sUnitContemplativeActive[id];
+    return GetUnitContemplativeState(id);
 }
 
 void SkillDispatchBattle(enum SkillHook hook,
