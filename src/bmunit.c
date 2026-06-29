@@ -12,6 +12,7 @@
 #include "bmmap.h"
 #include "bmidoten.h"
 #include "bmbattle.h"
+#include "bmskill.h"
 #include "bmreliance.h"
 #include "bmtrick.h"
 #include "monstergen.h"
@@ -228,8 +229,10 @@ void InitUnits(void) {
 
 void ClearUnit(struct Unit* unit) {
     u8 id = unit->index;
+    SkillClearUnitCombatState(unit);
     CpuFill16(0, unit, sizeof(struct Unit));
     unit->index = id;
+    UNIT_CLEAR_ENGAGE_STATE(unit);
 }
 
 void CopyUnit(struct Unit* from, struct Unit* to) {
@@ -1061,6 +1064,8 @@ void UnitBeginAction(struct Unit* unit) {
     gActiveUnitMoveOrigin.x = unit->xPos;
     gActiveUnitMoveOrigin.y = unit->yPos;
 
+    SkillOnUnitBeginAction(unit);
+
     gActionData.subjectIndex = unit->index;
     gActionData.unitActionType = 0;
     gActionData.moveCount = 0;
@@ -1080,6 +1085,8 @@ void UnitBeginCantoAction(struct Unit* unit) {
 
     gActiveUnitMoveOrigin.x = unit->xPos;
     gActiveUnitMoveOrigin.y = unit->yPos;
+
+    SkillOnUnitBeginAction(unit);
 
     gActionData.unitActionType = 0;
 

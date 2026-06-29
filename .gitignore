@@ -67,6 +67,7 @@ src/*.s
 tools/agbcc
 *.exe
 .dep
+tests/build/
 *.4bpp
 *.8bpp
 *.gbapal

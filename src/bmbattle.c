@@ -15,6 +15,7 @@
 #include "mu.h"
 #include "bmarch.h"
 #include "bmarena.h"
+#include "bmskill.h"
 #include "bmsave.h"
 #include "ekrbattle.h"
 #include "bmbattle.h"
@@ -25,6 +26,7 @@
 #include "constants/items.h"
 #include "constants/classes.h"
 #include "constants/characters.h"
+#include "constants/skills.h"
 #include "constants/terrains.h"
 #include "constants/chapters.h"
 
@@ -183,8 +185,9 @@ void BattleGenerateBallistaReal(struct Unit* actor, struct Unit* target) {
 }
 
 void BattleGenerate(struct Unit* actor, struct Unit* target) {
-    ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
-    ComputeBattleUnitStats(&gBattleTarget, &gBattleActor);
+    Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    Engage_ComputeBattleUnitStats(&gBattleTarget, &gBattleActor);
+    SkillApplyBattleStatBonuses(&gBattleActor, &gBattleTarget);
 
     ComputeBattleUnitEffectiveStats(&gBattleActor, &gBattleTarget);
     ComputeBattleUnitEffectiveStats(&gBattleTarget, &gBattleActor);
@@ -226,7 +229,8 @@ void BattleGenerateUiStats(struct Unit* unit, s8 itemSlot) {
         SetBattleUnitTerrainBonusesAuto(&gBattleActor);
 
     SetBattleUnitWeapon(&gBattleActor, itemSlot);
-    ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    Engage_ComputeBattleUnitStats(&gBattleActor, &gBattleTarget);
+    SkillApplyBattleStatBonuses(&gBattleActor, &gBattleTarget);
 
     if (GetItemIndex(gBattleActor.weapon) == ITEM_SWORD_RUNESWORD) {
         gBattleActor.battleAttack -= gBattleActor.unit.pow / 2;
@@ -884,40 +888,6 @@ void BattleUpdateBattleStats(struct BattleUnit* attacker, struct BattleUnit* def
     gBattleStats.silencerRate = attacker->battleSilencerRate;
 }
 
-void BattleCheckSureShot(struct BattleUnit* attacker) {
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)
-        return;
-
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_PIERCE)
-        return;
-
-    if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_GREATSHLD)
-        return;
-
-    switch (attacker->unit.pClassData->number) {
-
-    case CLASS_SNIPER:
-    case CLASS_SNIPER_F:
-        switch (GetItemIndex(attacker->weapon)) {
-
-        case ITEM_BALLISTA_REGULAR:
-        case ITEM_BALLISTA_LONG:
-        case ITEM_BALLISTA_KILLER:
-            break;
-
-        default:
-            if (BattleRoll1RN(attacker->unit.level, FALSE) == TRUE)
-                gBattleHitIterator->attributes |= BATTLE_HIT_ATTR_SURESHOT;
-
-            break;
-
-        } // switch (GetItemIndex(attacker->weapon))
-
-        break;
-
-    } // switch (attacker->unit.pClassData->number)
-}
-
 void BattleCheckPierce(struct BattleUnit* attacker, struct BattleUnit* defender) {
     if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)
         return;
@@ -999,10 +969,15 @@ void BattleCheckPetrify(struct BattleUnit* attacker, struct BattleUnit* defender
 
 void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit* defender) {
     short attack, defense;
+    struct SkillBattleContext ctx = {
+        .attacker = attacker,
+        .defender = defender,
+        .hit = gBattleHitIterator,
+    };
 
     gBattleStats.damage = 0;
 
-    BattleCheckSureShot(attacker);
+    SkillDispatchForUnit(SKILL_HOOK_PRE_HIT, &ctx, &attacker->unit);
 
     if (!(gBattleHitIterator->attributes & BATTLE_HIT_ATTR_SURESHOT)) {
         if (!BattleRoll2RN(gBattleStats.hitRate, TRUE)) {
@@ -1026,6 +1001,8 @@ void BattleGenerateHitAttributes(struct BattleUnit* attacker, struct BattleUnit*
 
     if (gBattleHitIterator->attributes & BATTLE_HIT_ATTR_GREATSHLD)
         gBattleStats.damage = 0;
+
+    SkillDispatchForUnit(SKILL_HOOK_AFTER_DMG, &ctx, &defender->unit);
 
     if (BattleRoll1RN(gBattleStats.critRate, FALSE) == TRUE) {
         if (BattleCheckSilencer(attacker, defender)) {
@@ -1181,6 +1158,7 @@ s8 BattleGenerateHit(struct BattleUnit* attacker, struct BattleUnit* defender) {
     BattleUpdateBattleStats(attacker, defender);
 
     BattleGenerateHitTriangleAttack(attacker, defender);
+
     BattleGenerateHitAttributes(attacker, defender);
     BattleGenerateHitEffects(attacker, defender);
 

@@ -205,7 +205,17 @@ struct GameSavePackedUnit {       /* Save Data */
     /* 14 */ u8 pid;
     /* 15 */ u8 wpnRanks[0x8];
     /* 1D */ u8 supports[UNIT_SUPPORT_MAX_COUNT];
-    /* 24 */
+
+    /* engage: uEngageSkillUsed (#47) — boolean flag, persisted per-unit.
+     * 0 = engage skill not yet used in the current engage window;
+     * non-zero = used. Read by ApplyEngageSkillToBattleUnit; cleared by
+     * Disengage. */
+    /* 24 */ u8 uEngageSkillUsed;
+
+    /* engage: ringEmblemId/ringBondLevel (#49) — persisted runtime engage
+     * state (0xFF/0 = no ring). */
+    /* 25 */ u8 ringEmblemId;
+    /* 26 */ u8 ringBondLevel;
 } BITPACKED;
 
 enum packed_unit_state_bits {
@@ -264,7 +274,16 @@ struct SuspendSavePackedUnit {     /* Suspend Data */
     
     /* 31 */ u8 ai_counter;
     /* 32 */ u16 ai_config;
-    /* 34 */
+
+    /* engage: uEngageSkillUsed (#47) — boolean flag, persisted per-unit
+     * (mirror of GameSavePackedUnit.uEngageSkillUsed). 0 = engage skill
+     * not yet used in the current engage window; non-zero = used. */
+    /* 34 */ u8 uEngageSkillUsed;
+
+    /* engage: ringEmblemId/ringBondLevel (#49) — persisted runtime engage
+     * state across suspend. */
+    /* 35 */ u8 ringEmblemId;
+    /* 36 */ u8 ringBondLevel;
 } BITPACKED;
 
 /* link arena */

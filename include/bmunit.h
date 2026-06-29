@@ -166,7 +166,7 @@ struct Unit
     /* 32 */ u8 supports[UNIT_SUPPORT_MAX_COUNT];
     /* 39 */ s8 supportBits;
 
-    /* pad */
+    /* engage state */
     /* 3A */ u8 _u3A;
     /* 3B */ u8 _u3B;
 
@@ -178,10 +178,26 @@ struct Unit
     /* 44 */ u8 ai2;        // enum to gAi2ScriptTable
     /* 45 */ u8 ai_b_pc;
     /* 46 */ u8 ai_counter;
-
-    /* pad */
-    /* 47 */ u8 _u47;
 };
+
+#define UNIT_RING_EMBLEM_NONE 0xFF
+#define UNIT_RING_BOND_LEVEL_MASK 0x7F
+#define UNIT_ENGAGE_SKILL_USED_FLAG 0x80
+
+#define UNIT_RING_EMBLEM_ID(unit) ((unit)->_u3A)
+#define UNIT_RING_BOND_LEVEL(unit) ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK)
+#define UNIT_ENGAGE_SKILL_USED(unit) (((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) != 0)
+
+#define UNIT_SET_RING_EMBLEM_ID(unit, value) ((unit)->_u3A = (value))
+#define UNIT_SET_RING_BOND_LEVEL(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_ENGAGE_SKILL_USED_FLAG) | ((value) & UNIT_RING_BOND_LEVEL_MASK))
+#define UNIT_SET_ENGAGE_SKILL_USED(unit, value) \
+    ((unit)->_u3B = ((unit)->_u3B & UNIT_RING_BOND_LEVEL_MASK) | ((value) ? UNIT_ENGAGE_SKILL_USED_FLAG : 0))
+#define UNIT_CLEAR_ENGAGE_STATE(unit) \
+    do { \
+        UNIT_SET_RING_EMBLEM_ID((unit), UNIT_RING_EMBLEM_NONE); \
+        (unit)->_u3B = 0; \
+    } while (0)
 
 enum udef_ai_index {
     UDEF_AIIDX_AI_A,
@@ -331,7 +347,8 @@ enum
     CA_UNSELECTABLE = (1 << 20),
     CA_TRIANGLEATTACK_PEGASI = (1 << 21),
     CA_TRIANGLEATTACK_ARMORS = (1 << 22),
-    CA_BIT_23 = (1 << 23),
+    CA_DIVINE_DRAGON    = (1 << 23),
+    CA_BIT_23           = CA_DIVINE_DRAGON,
     CA_NEGATE_LETHALITY = (1 << 24),
     CA_ASSASSIN = (1 << 25),
     CA_MAGICSEAL = (1 << 26),

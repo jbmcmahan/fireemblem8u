@@ -372,6 +372,10 @@ void WriteGameSavePackedUnit(struct Unit *unit, void *sram_dest)
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unitp.supports[i] = unit->supports[i];
 
+    unitp.uEngageSkillUsed = UNIT_ENGAGE_SKILL_USED(unit);
+    unitp.ringEmblemId = UNIT_RING_EMBLEM_ID(unit);
+    unitp.ringBondLevel = UNIT_RING_BOND_LEVEL(unit);
+
     WriteAndVerifySramFast(&unitp, sram_dest, sizeof(unitp));
 }
 
@@ -439,6 +443,10 @@ void LoadSavedUnit(const void *sram_src, struct Unit *unit)
 
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unit->supports[i] = unitp.supports[i];
+
+    UNIT_SET_RING_EMBLEM_ID(unit, unitp.ringEmblemId);
+    UNIT_SET_RING_BOND_LEVEL(unit, unitp.ringBondLevel);
+    UNIT_SET_ENGAGE_SKILL_USED(unit, unitp.uEngageSkillUsed);
 
     SetUnitHp(unit, GetUnitMaxHp(unit));
     unit->supportBits = 0;
@@ -668,6 +676,10 @@ void EncodeSuspendSavePackedUnit(struct Unit *unit, void *buf)
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unit_su->supports[i] = unit->supports[i];
 
+    unit_su->uEngageSkillUsed = UNIT_ENGAGE_SKILL_USED(unit);
+    unit_su->ringEmblemId = UNIT_RING_EMBLEM_ID(unit);
+    unit_su->ringBondLevel = UNIT_RING_BOND_LEVEL(unit);
+
     unit_su->ai1 =  unit->ai1;
 
     ai1_byte = unit->ai1 & 0x7F;
@@ -735,6 +747,10 @@ void ReadSuspendSavePackedUnit(const void *sram_src, struct Unit *unit)
 
     for (i = 0; i < UNIT_SUPPORT_MAX_COUNT; i++)
         unit->supports[i] = unit_su.supports[i];
+
+    UNIT_SET_RING_EMBLEM_ID(unit, unit_su.ringEmblemId);
+    UNIT_SET_RING_BOND_LEVEL(unit, unit_su.ringBondLevel);
+    UNIT_SET_ENGAGE_SKILL_USED(unit, unit_su.uEngageSkillUsed);
 
     unit->ai1 = unit_su.ai1 & 0x7F;
     unit->ai_a_pc = unit_su.ai_a_pc;

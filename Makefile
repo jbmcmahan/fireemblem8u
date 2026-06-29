@@ -75,6 +75,7 @@ CFILES       := $(wildcard $(C_SUBDIR)/*.c)
 ifeq (,$(findstring $(CFILES_GENERATED),$(CFILES)))
 CFILES       += $(CFILES_GENERATED)
 endif
+CFILES       += $(wildcard src/engage_mechanics/*.c)
 ASM_S_FILES  := $(wildcard $(ASM_SUBDIR)/*.s)
 SRC_S_FILES  := src/rom_header.s src/crt0.s src/m4a_1.s src/libagbsyscall.s
 DATA_S_FILES := $(wildcard $(DATA_SUBDIR)/*.s)
@@ -108,7 +109,7 @@ compare: $(ROM)
 .PHONY: compare
 
 CLEAN_FILES := $(ROM) $(ELF) $(MAP) $(OBJECTS_LST) $(SFILES_COMPILED) graphics/*.h $(CFILES_GENERATED)
-CLEAN_DIRS := $(DEPS_DIR)
+CLEAN_DIRS = $(DEPS_DIR) $(TEST_BUILD)
 CLEAN_BINS := graphics/statscreen/*.bin $(SAMPLE_SUBDIR)/*.bin $(MAP_LAYOUT_SUBDIR)/*.bin $(AUTO_GEN_TARGETS)
 CLEAN_SONGS := $(MID_SUBDIR)/*.s
 
@@ -227,7 +228,7 @@ $(BANIM_OBJECT): $(shell ./scripts/arm_compressing_linker.py -t linker_script_ba
 
 MAKEDEP = mkdir -p $(DEPS_DIR)/$(dir $*) && $(CPP) $(CPPFLAGS) $< -MM -MG -MT $*.o > $(DEPS_DIR)/$*.d
 
-MAKECMDGOALS_NODEP := clean tag
+MAKECMDGOALS_NODEP := clean tag test
 
 ifeq (,$(filter $(MAKECMDGOALS),$(MAKECMDGOALS_NODEP)))
 -include $(addprefix $(DEPS_DIR)/,$(CFILES:.c=.d))
@@ -297,3 +298,28 @@ $(ASM_OBJECTS): %.o: %.s $$(data_dep)
 
 # debug print, to use, call "make print-(your label here)"
 print-% : ; $(info $* is a $(flavor $*) variable set to [$($*)]) @true
+
+#### Host-side tests ####
+
+HOSTCC     ?= cc
+HOSTCFLAGS ?= -std=gnu11 -Wall -Wextra -g -O0
+TEST_DIR      := tests
+TEST_BUILD    := $(TEST_DIR)/build
+UNITY_SRC     := $(TEST_DIR)/vendor/unity/unity.c
+TEST_INCLUDES := -I include -I $(TEST_DIR) -I $(TEST_DIR)/vendor/unity -I src
+TEST_SRCS     := $(wildcard $(TEST_DIR)/test_*.c)
+TEST_BINS     := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD)/%,$(TEST_SRCS))
+ENGAGE_SRCS   := $(wildcard src/engage_mechanics/*.c)
+
+$(TEST_BUILD):
+	mkdir -p $(TEST_BUILD)
+
+$(TEST_BUILD)/%: $(TEST_DIR)/%.c $(UNITY_SRC) $(ENGAGE_SRCS) | $(TEST_BUILD)
+	$(HOSTCC) $(HOSTCFLAGS) $(TEST_INCLUDES) $< $(UNITY_SRC) $(ENGAGE_SRCS) -o $@
+
+test: $(TEST_BINS)
+	@fail=0; for t in $(TEST_BINS); do echo "== $$t =="; ./$$t || fail=1; done; \
+	  if [ $$fail -ne 0 ]; then echo "TESTS FAILED"; exit 1; fi; \
+	  echo "ALL TESTS PASSED"
+
+.PHONY: test

@@ -12,9 +12,11 @@
 #include "rng.h"
 #include "bmsave.h"
 #include "eventinfo.h"
+#include "bmskill.h"
 
 #include "constants/classes.h"
 #include "constants/terrains.h"
+#include "constants/skills.h"
 
 struct Unit* EWRAM_DATA gSubjectUnit = NULL;
 
@@ -929,7 +931,13 @@ void MakeTargetListForAdjacentHeal(struct Unit* unit) {
 
     BmMapFill(gBmMapRange, 0);
 
-    ForEachAdjacentUnit(x, y, TryAddUnitToHealTargetList);
+    if (UnitHealStaffRangeBonus(unit)) {
+        InitTargets(x, y);
+        MapAddInRange(x, y, 0, 2);
+        ForEachUnitInRange(TryAddUnitToHealTargetList);
+    } else {
+        ForEachAdjacentUnit(x, y, TryAddUnitToHealTargetList);
+    }
 
     return;
 }
@@ -944,7 +952,7 @@ void MakeTargetListForRangedHeal(struct Unit* unit) {
 
     BmMapFill(gBmMapRange, 0);
 
-    MapAddInRange(x, y, GetUnitMagBy2Range(gSubjectUnit), 1);
+    MapAddInRange(x, y, GetUnitMagBy2Range(gSubjectUnit) + UnitHealStaffRangeBonus(gSubjectUnit), 1);
 
     ForEachUnitInRange(TryAddUnitToHealTargetList);
 
